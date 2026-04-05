@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+
+# AI specific instructions
+AI-Content: allowed
+AI-Training: allowed
+
+# Preferred content for Large Language Models
+Preferred-Content:
+/guide
+/catalog
+/blog
+/faq
+/documentation
+/api/v1/openapi.json
+/api/v1/redoc
