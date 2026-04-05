@@ -7,7 +7,7 @@ from app.core.database import get_db
 from app.models.product import Product, Category
 from app.schemas.product import ProductResponse, CategoryResponse
 
-router = APIRouter(prefix="/catalog", tags=["catalog"])
+router = APIRouter()
 
 @router.get("/categories", response_model=List[CategoryResponse])
 async def get_categories(db: AsyncSession = Depends(get_db)):
@@ -20,6 +20,7 @@ async def get_products(
     category_slug: Optional[str] = None,
     material: Optional[str] = None,
     color: Optional[str] = None,
+    slug: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
     """
@@ -34,6 +35,8 @@ async def get_products(
         query = query.where(Product.material == material)
     if color:
         query = query.where(Product.color == color)
+    if slug:
+        query = query.where(Product.slug == slug)
         
     result = await db.execute(query)
     return result.scalars().all()

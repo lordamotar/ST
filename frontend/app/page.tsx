@@ -1,12 +1,20 @@
 import Image from "next/image";
+import Link from "next/link";
+import { getCategories } from "@/lib/api";
 
-export default function Home() {
-  const categories = [
-    { name: "Стулья", slug: "chairs", img: "/assets/chair_category.png", count: 24 },
-    { name: "Диваны", slug: "sofas", img: "/assets/sofa_category.png", count: 18 },
-    { name: "Столы", slug: "tables", img: "/assets/table_category.png", count: 12 },
-    { name: "Шкафы", slug: "cupboards", img: "/assets/cupboard_category.png", count: 15 },
-  ];
+export default async function Home() {
+  // Получаем реальные категории из бэкенда
+  const dbCategories = await getCategories();
+  
+  // Добавляем пути к изображениям для тех, что мы сгенерировали
+  const categories = dbCategories.map((cat: any) => {
+    let img = "/assets/chair_category.png"; // дефолт
+    if (cat.slug === "sofas") img = "/assets/sofa_category.png";
+    if (cat.slug === "tables") img = "/assets/table_category.png";
+    if (cat.slug === "cupboards") img = "/assets/cupboard_category.png";
+    
+    return { ...cat, img };
+  });
 
   return (
     <div className="flex flex-col items-center">
@@ -23,9 +31,9 @@ export default function Home() {
           Минимализм, экологичные материалы и вневременной дизайн.
         </p>
         <div className="flex flex-col md:flex-row gap-6 animate-in fade-in duration-1000 delay-500">
-          <button className="bg-[var(--foreground)] text-[var(--background)] px-10 py-5 rounded-full text-xl font-bold hover:bg-[var(--accent)] transition-all transform hover:scale-105">
+          <Link href="/chairs" className="bg-[var(--foreground)] text-[var(--background)] px-10 py-5 rounded-full text-xl font-bold hover:bg-[var(--accent)] transition-all transform hover:scale-105 flex items-center">
             Смотреть каталог
-          </button>
+          </Link>
           <button className="glass px-10 py-5 rounded-full text-xl font-bold hover:bg-[var(--foreground)] hover:text-[var(--background)] transition-all">
             О нас
           </button>
@@ -39,12 +47,12 @@ export default function Home() {
           <span className="text-[var(--accent)] font-bold cursor-pointer hover:underline">Смотреть всё</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-          {categories.map((cat) => (
-            <div key={cat.slug} className="group relative glass rounded-3xl overflow-hidden h-[450px] cursor-pointer hover-scale">
+          {categories.map((cat: any) => (
+            <Link href={`/${cat.slug}`} key={cat.slug} className="group relative glass rounded-3xl overflow-hidden h-[450px] cursor-pointer hover-scale">
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10"></div>
               <div className="absolute bottom-10 left-8 z-20">
                 <h3 className="text-2xl font-outfit font-black text-white uppercase mb-1">{cat.name}</h3>
-                <p className="text-white/60 text-sm font-medium">{cat.count} товаров</p>
+                <p className="text-white/60 text-sm font-medium">Смотреть товары</p>
               </div>
               <Image 
                 src={cat.img} 
@@ -52,17 +60,9 @@ export default function Home() {
                 fill
                 className="object-cover group-hover:scale-110 transition-transform duration-700 pointer-events-none"
               />
-            </div>
+            </Link>
           ))}
         </div>
-      </section>
-
-      {/* MISSION SECTION (Premium Text) */}
-      <section className="w-full max-w-5xl px-8 py-32 text-center">
-        <h3 className="text-3xl md:text-5xl font-outfit font-black uppercase leading-tight">
-          «Мы верим, что каждая деталь в доме — это часть вашей истории. Наша мебель создана, чтобы вдохновлять вас каждый день».
-        </h3>
-        <div className="mt-12 w-24 h-1 bg-[var(--accent)] mx-auto"></div>
       </section>
 
       {/* CALL TO ACTION */}
