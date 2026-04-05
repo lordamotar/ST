@@ -42,6 +42,8 @@ export default async function ProductPage({ params }: Props) {
             src={imageSrc} 
             alt={product.name}
             fill
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            priority
             className="object-cover"
           />
         </div>
@@ -75,4 +77,3 @@ export default async function ProductPage({ params }: Props) {
     </div>
   );
 }
- Jonah_pydantic_custom_logic_here

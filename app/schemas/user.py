@@ -1,19 +1,18 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, EmailStr
 from typing import Optional
 
 class UserBase(BaseModel):
-    telegram_id: int
-    username: Optional[str] = None
+    email: EmailStr
     full_name: Optional[str] = None
-    is_active: bool = True
 
 class UserCreate(UserBase):
-    pass
+    password: str
 
 class UserResponse(UserBase):
     id: int
-    is_admin: bool
-    is_master: bool
+    is_active: bool
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str

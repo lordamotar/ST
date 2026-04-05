@@ -1,19 +1,25 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getCategories } from "@/lib/api";
+import SearchInput from "@/components/SearchInput";
 
 export default async function Home() {
   // Получаем реальные категории из бэкенда
   const dbCategories = await getCategories();
   
-  // Добавляем пути к изображениям для тех, что мы сгенерировали
+  // Привязка изображений
   const categories = dbCategories.map((cat: any) => {
-    let img = "/assets/chair_category.png"; // дефолт
-    if (cat.slug === "sofas") img = "/assets/sofa_category.png";
-    if (cat.slug === "tables") img = "/assets/table_category.png";
-    if (cat.slug === "cupboards") img = "/assets/cupboard_category.png";
+    const assets: { [key: string]: string } = {
+      chairs: "/assets/chair_category.png",
+      sofas: "/assets/sofa_category.png",
+      tables: "/assets/table_category.png",
+      cupboards: "/assets/cupboard_category.png",
+    };
     
-    return { ...cat, img };
+    return { 
+        ...cat, 
+        img: assets[cat.slug] || "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=2070&auto=format&fit=crop"
+    };
   });
 
   return (
@@ -30,7 +36,10 @@ export default async function Home() {
           Переосмыслите свое пространство с коллекцией 2026 года. 
           Минимализм, экологичные материалы и вневременной дизайн.
         </p>
-        <div className="flex flex-col md:flex-row gap-6 animate-in fade-in duration-1000 delay-500">
+        
+        <SearchInput />
+
+        <div className="flex flex-col md:flex-row gap-6 mt-12 animate-in fade-in duration-1000 delay-500">
           <Link href="/chairs" className="bg-[var(--foreground)] text-[var(--background)] px-10 py-5 rounded-full text-xl font-bold hover:bg-[var(--accent)] transition-all transform hover:scale-105 flex items-center">
             Смотреть каталог
           </Link>
@@ -58,6 +67,8 @@ export default async function Home() {
                 src={cat.img} 
                 alt={cat.name}
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                priority
                 className="object-cover group-hover:scale-110 transition-transform duration-700 pointer-events-none"
               />
             </Link>

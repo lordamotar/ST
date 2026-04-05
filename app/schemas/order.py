@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 from datetime import datetime
 
@@ -8,9 +8,11 @@ class OrderCreate(BaseModel):
     product_id: int
     message: Optional[str] = None
 
+class OrderUpdateStatus(BaseModel):
+    status: str
+
 class OrderResponse(OrderCreate):
     id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+    status: str
+    model_config = ConfigDict(from_attributes=True)

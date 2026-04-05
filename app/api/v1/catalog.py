@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 
 from app.core.database import get_db
@@ -21,13 +22,16 @@ async def get_products(
     material: Optional[str] = None,
     color: Optional[str] = None,
     slug: Optional[str] = None,
+    q: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Каталог товаров с фильтрацией. 
-    Используется для SEO-страниц типа /material/oak или /color/red.
+    Каталог товаров с фильтрацией и поиском по параметру 'q'.
     """
-    query = select(Product).join(Category)
+    if q:
+        print(f"DEBUG: SEARCH QUERY RECEIVED -> {q}")
+        
+    query = select(Product).join(Category).options(selectinload(Product.category))
     
     if category_slug:
         query = query.where(Category.slug == category_slug)
@@ -37,6 +41,11 @@ async def get_products(
         query = query.where(Product.color == color)
     if slug:
         query = query.where(Product.slug == slug)
+    if q:
+        query = query.where(
+            Product.name.ilike(f"%{q}%") | 
+            func.coalesce(Product.description, "").ilike(f"%{q}%")
+        )
         
     result = await db.execute(query)
     return result.scalars().all()

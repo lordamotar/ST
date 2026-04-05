@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 
 class CategoryBase(BaseModel):
@@ -8,8 +8,7 @@ class CategoryBase(BaseModel):
 
 class CategoryResponse(CategoryBase):
     id: int
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProductBase(BaseModel):
     name: str
@@ -22,6 +21,5 @@ class ProductBase(BaseModel):
 
 class ProductResponse(ProductBase):
     id: int
-    category: CategoryResponse
-    class Config:
-        from_attributes = True
+    category: Optional[CategoryResponse] = None
+    model_config = ConfigDict(from_attributes=True)

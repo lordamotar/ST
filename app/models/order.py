@@ -12,5 +12,6 @@ class Order(Base):
     product_id = Column(Integer, ForeignKey("products.id"))
     message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(String(50), default="new", nullable=False)
 
     product = relationship("Product")

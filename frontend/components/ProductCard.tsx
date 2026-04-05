@@ -12,6 +12,7 @@ export default function ProductCard({ product }: { product: any }) {
           src={imageSrc} 
           alt={product.name}
           fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
           className="object-cover group-hover:scale-110 transition-transform duration-700"
         />
         <div className="absolute top-4 right-4 bg-[var(--background)] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">

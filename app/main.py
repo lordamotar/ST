@@ -15,7 +15,6 @@ async def lifespan(app: FastAPI):
     # 1. Автоматическое создание таблиц
     async with engine.begin() as conn:
         print("Initializing Furniture Database...")
-        # Импортируем модели здесь
         from app.models.product import Category, Product 
         from app.models.user import User 
         from app.models.order import Order
@@ -35,7 +34,7 @@ app = FastAPI(
 # --- Настройка CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"], # Разрешаем наш фронтенд
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
