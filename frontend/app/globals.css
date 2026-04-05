@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fdfcfb;
+  --foreground: #1a1a1a;
+  --accent: #c5a059; /* Мягкое золото */
+  --accent-foreground: #ffffff;
+  --muted: #f4f4f4;
+  --muted-foreground: #737373;
+  --card: rgba(255, 255, 255, 0.7);
+  --card-border: rgba(255, 255, 255, 0.3);
+  --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f1115;
+    --foreground: #f5f5f5;
+    --accent: #d4af37;
+    --card: rgba(30, 32, 38, 0.6);
+    --card-border: rgba(255, 255, 255, 0.05);
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+}
+
+/* Эффект Glassmorphism */
+.glass {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+}
+
+/* Плавный градиент для заголовков */
+.text-gradient {
+  background: linear-gradient(135deg, var(--foreground) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Анимация при наведении */
+.hover-scale {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.hover-scale:hover {
+  transform: scale(1.02);
+}
