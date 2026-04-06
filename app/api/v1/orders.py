@@ -31,8 +31,7 @@ async def list_orders(
 ):
     if admin_token != settings.JWT_SECRET:
         raise HTTPException(status_code=403, detail="Forbidden: Invalid Admin Token")
-        
-    result = await db.execute(select(Order).order_by(Order.created_at.desc()))
+    result = await db.execute(select(Order).options(selectinload(Order.product)).order_by(Order.created_at.desc()))
     return result.scalars().all()
 
 @router.patch("/{order_id}/status", response_model=OrderResponse)
@@ -46,14 +45,19 @@ async def update_order_status(
         raise HTTPException(status_code=403, detail="Forbidden: Invalid Admin Token")
     
     # 1. Поиск заказа
-    result = await db.execute(select(Order).where(Order.id == order_id))
+    result = await db.execute(select(Order).options(selectinload(Order.product)).where(Order.id == order_id))
     db_order = result.scalar_one_or_none()
     
     if not db_order:
         raise HTTPException(status_code=404, detail="Order not found")
     
     # 2. Обновление статуса
+    if db_order.status == "new" and status_update.status != "new":
+        db_order.processed_by = "Admin"
+    
     db_order.status = status_update.status
+    db_order.modified_by = "Admin"
+    
     await db.commit()
     await db.refresh(db_order)
     

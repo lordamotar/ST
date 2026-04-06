@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { API_URL, uploadProductImage, bulkImportProducts, toggleProductStatus } from "@/lib/api";
 
 interface Category { id: number; name: string; slug: string; }
@@ -55,6 +55,14 @@ export default function AdminProducts() {
   // Toggle status
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const PAGE_SIZES = [10, 25, 50, 100];
+
+  // View Mode
+  const [viewMode, setViewMode] = useState<"table" | "list">("table");
+
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -69,10 +77,27 @@ export default function AdminProducts() {
     }
   };
 
+  useEffect(() => {
+    const savedToken = localStorage.getItem("admin_token");
+    if (savedToken) {
+      setToken(savedToken);
+      fetch(`${API_URL}/orders/`, { headers: { "admin-token": savedToken } })
+        .then(res => {
+          if (res.ok) {
+            setIsLogged(true);
+            fetchProducts();
+          } else {
+            localStorage.removeItem("admin_token");
+          }
+        });
+    }
+  }, []);
+
   const handleLoginAlt = async (e: React.FormEvent) => {
     e.preventDefault();
     const res = await fetch(`${API_URL}/orders/`, { headers: { "admin-token": token } });
     if (!res.ok) { setLoginError("Неверный Admin Token."); return; }
+    localStorage.setItem("admin_token", token);
     setIsLogged(true);
     setLoginError("");
     fetchProducts();
@@ -249,7 +274,7 @@ export default function AdminProducts() {
   return (
     <div className="max-w-7xl mx-auto px-8 py-20 animate-in fade-in duration-500">
       {/* ─── Header ─── */}
-      <div className="flex flex-wrap justify-between items-center mb-12 gap-4">
+      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
         <div>
           <h1 className="text-5xl font-outfit font-black uppercase text-gradient">Товары</h1>
           <p className="opacity-40 font-medium mt-1">{products.length} позиций в каталоге</p>
@@ -274,15 +299,41 @@ export default function AdminProducts() {
         </div>
       </div>
 
-      {/* ─── Product List ─── */}
+      {/* ─── View Mode Toggle ─── */}
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={() => setViewMode("table")}
+          className={`flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+            viewMode === "table" ? "bg-[var(--accent)] text-black" : "bg-white/5 hover:bg-white/10"
+          }`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+          Таблица
+        </button>
+        <button
+          onClick={() => setViewMode("list")}
+          className={`flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
+            viewMode === "list" ? "bg-[var(--accent)] text-black" : "bg-white/5 hover:bg-white/10"
+          }`}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Список
+        </button>
+      </div>
+
+      {/* ─── Product List / Table ─── */}
       {loading ? (
         <div className="h-40 flex items-center justify-center opacity-30">
           <p className="text-2xl font-bold uppercase">Загрузка...</p>
         </div>
-      ) : (
-        <div className="grid gap-4">
-          {products.map((p) => (
-            <div key={p.id} className="glass p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-4 border border-transparent hover:border-[var(--accent)]/20 transition-all">
+      ) : products.length === 0 ? (
+        <div className="h-40 flex items-center justify-center glass rounded-3xl opacity-30">
+          <p className="text-2xl font-bold uppercase">Товаров нет</p>
+        </div>
+      ) : viewMode === "list" ? (
+        <div className="grid grid-cols-1 gap-4">
+          {products.slice((page - 1) * pageSize, page * pageSize).map((p) => (
+            <div key={p.id} className="glass p-6 rounded-[2rem] flex flex-col md:flex-row items-center gap-6 hover:border-[var(--accent)]/20 transition-all">
               {/* Thumbnail */}
               <div className="w-14 h-14 rounded-xl overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
                 {p.image_url ? (
@@ -291,64 +342,180 @@ export default function AdminProducts() {
                   <span className="text-[var(--accent)] font-bold text-sm">#{p.id}</span>
                 )}
               </div>
-
               {/* Name + Slug */}
               <div className="flex-1 min-w-0">
                 <p className="font-bold uppercase truncate">{p.name}</p>
                 <p className="text-xs opacity-40 font-mono">{p.slug}</p>
               </div>
-
               {/* Category */}
               <span className="text-sm bg-white/5 px-3 py-1 rounded-full font-medium shrink-0">
                 {p.category?.name ?? `Cat #${p.category_id}`}
               </span>
-
-              {/* Material */}
               {p.material && (
                 <span className="text-sm bg-white/5 px-3 py-1 rounded-full font-medium shrink-0">{p.material}</span>
               )}
-
-              {/* Price */}
               <span className="font-black text-lg shrink-0">{p.price.toLocaleString()} ₽</span>
-
-              {/* Toggle Switch */}
               <button
                 onClick={() => handleToggle(p.id)}
                 disabled={togglingId === p.id}
                 title={p.is_active ? "Деактивировать" : "Активировать"}
                 className={`relative w-12 h-7 rounded-full transition-all duration-300 shrink-0 disabled:opacity-40 ${
-                  p.is_active
-                    ? "bg-green-500/30 border border-green-500/40"
-                    : "bg-red-500/20 border border-red-500/30"
+                  p.is_active ? "bg-green-500/30 border border-green-500/40" : "bg-red-500/20 border border-red-500/30"
                 }`}
               >
-                <span
-                  className={`absolute top-0.5 w-6 h-6 rounded-full transition-all duration-300 ${
-                    p.is_active
-                      ? "left-[calc(100%-1.625rem)] bg-green-400"
-                      : "left-0.5 bg-red-400"
-                  }`}
-                />
+                <span className={`absolute top-0.5 w-6 h-6 rounded-full transition-all duration-300 ${
+                  p.is_active ? "left-[calc(100%-1.625rem)] bg-green-400" : "left-0.5 bg-red-400"
+                }`} />
               </button>
-
-              {/* Action Buttons */}
               <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={() => openEdit(p)}
-                  className="px-4 py-2 bg-white/5 hover:bg-[var(--accent)]/20 rounded-xl text-sm font-bold transition-all"
-                >
-                  ✏️
-                </button>
-                <button
-                  onClick={() => handleDelete(p.id)}
-                  disabled={deletingId === p.id}
-                  className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
-                >
-                  🗑️
-                </button>
+                <button onClick={() => openEdit(p)} className="px-4 py-2 bg-white/5 hover:bg-[var(--accent)]/20 rounded-xl text-sm font-bold transition-all">✏️</button>
+                <button onClick={() => handleDelete(p.id)} disabled={deletingId === p.id} className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm font-bold transition-all disabled:opacity-40">🗑️</button>
               </div>
             </div>
           ))}
+        </div>
+      ) : (
+        /* ─── TABLE VIEW ─── */
+        <div className="glass rounded-[2rem] overflow-x-auto">
+          <table className="w-full text-left border-collapse" style={{ minWidth: '2200px' }}>
+            <thead>
+              <tr className="bg-white/5 border-b border-white/10">
+                {[
+                  "№", "Действия", "Фото", "Название", "Категория", "Описание", "Цена",
+                  "Размеры", "Мат. ножек", "Мат. столешн.", "Толщ. столешн.",
+                  "Просвет", "Макс. нагр.", "Регул. опор", "Цв. столешн.",
+                  "Подпятники", "Гарантия", "Доставка", "Цвет", "Опоры", "Страна", "Серия"
+                ].map((h) => (
+                  <th key={h} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest opacity-50 whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {products.slice((page - 1) * pageSize, page * pageSize).map((p) => {
+                const specs = p.characteristics ?? {};
+                const g = (key: string) => specs[key] || p[key as keyof Product] as string || "—";
+                return (
+                  <tr key={p.id} className="border-b border-white/5 hover:bg-white/5 transition-all text-sm">
+                    {/* № */}
+                    <td className="px-4 py-3 font-bold text-[var(--accent)] whitespace-nowrap">#{p.id}</td>
+                    {/* Действия */}
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1.5 items-center">
+                        <button
+                          onClick={() => handleToggle(p.id)}
+                          disabled={togglingId === p.id}
+                          title={p.is_active ? "Деактивировать" : "Активировать"}
+                          className={`relative w-10 h-6 rounded-full transition-all duration-300 shrink-0 disabled:opacity-40 ${
+                            p.is_active ? "bg-green-500/30 border border-green-500/40" : "bg-red-500/20 border border-red-500/30"
+                          }`}
+                        >
+                          <span className={`absolute top-0.5 w-5 h-5 rounded-full transition-all duration-300 ${
+                            p.is_active ? "left-[calc(100%-1.375rem)] bg-green-400" : "left-0.5 bg-red-400"
+                          }`} />
+                        </button>
+                        <button onClick={() => openEdit(p)} className="px-2.5 py-1.5 bg-white/5 hover:bg-[var(--accent)]/20 rounded-lg text-xs font-bold transition-all">✏️</button>
+                        <button onClick={() => handleDelete(p.id)} disabled={deletingId === p.id} className="px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs font-bold transition-all disabled:opacity-40">🗑️</button>
+                      </div>
+                    </td>
+                    {/* Фото */}
+                    <td className="px-4 py-3">
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex items-center justify-center shrink-0">
+                        {p.image_url ? (
+                          <img src={p.image_url.startsWith('http') ? p.image_url : `${BACKEND_URL}${p.image_url}`} alt={p.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-[10px] opacity-30">нет</span>
+                        )}
+                      </div>
+                    </td>
+                    {/* Название */}
+                    <td className="px-4 py-3 min-w-[160px] max-w-[200px]">
+                      <p className="font-bold text-xs leading-tight truncate" title={p.name}>{p.name}</p>
+                      <p className="text-[10px] opacity-30 font-mono truncate">{p.slug}</p>
+                      <span className={`mt-1 inline-block text-[9px] font-black px-1.5 py-0.5 rounded-full ${
+                        p.is_active ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+                      }`}>{p.is_active ? "Активен" : "Скрыт"}</span>
+                    </td>
+                    {/* Категория */}
+                    <td className="px-4 py-3 whitespace-nowrap text-xs opacity-80">{p.category?.name ?? `#${p.category_id}`}</td>
+                    {/* Описание */}
+                    <td className="px-4 py-3 min-w-[150px] max-w-[200px]">
+                      <p className="text-xs opacity-60 line-clamp-2" title={p.description ?? ""}>{p.description || "—"}</p>
+                    </td>
+                    {/* Цена */}
+                    <td className="px-4 py-3 font-black whitespace-nowrap">{p.price.toLocaleString()} ₽</td>
+                    {/* Размеры */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("dimensions")}</td>
+                    {/* Материал ножек */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("legs_material")}</td>
+                    {/* Материал столешницы */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("tabletop_material")}</td>
+                    {/* Толщина столешницы */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("tabletop_thickness")}</td>
+                    {/* Просвет от пола */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("floor_clearance")}</td>
+                    {/* Максимальная нагрузка */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("max_load")}</td>
+                    {/* Регулировка опор */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("legs_adjustment")}</td>
+                    {/* Цвет столешницы */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("tabletop_color")}</td>
+                    {/* Подпятники */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("footings")}</td>
+                    {/* Гарантия */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("warranty")}</td>
+                    {/* Вариант доставки */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("delivery_format")}</td>
+                    {/* Цвет */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("color")}</td>
+                    {/* Опоры */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("supports")}</td>
+                    {/* Страна */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("country")}</td>
+                    {/* Серия */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("series")}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Пагинация продуктов */}
+      {!loading && products.length > 0 && (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-8 bg-white/5 p-4 rounded-2xl border border-white/10">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold opacity-40 uppercase tracking-wider">Показывать по:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              className="bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-2 outline-none focus:border-[var(--accent)] text-xs font-black transition-all"
+            >
+              {PAGE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="flex justify-center items-center gap-4">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-xl font-bold uppercase text-xs disabled:opacity-20 transition-all"
+            >
+              Назад
+            </button>
+            <span className="text-sm font-black font-mono">
+              {page} / {Math.ceil(products.length / pageSize)}
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(Math.ceil(products.length / pageSize), p + 1))}
+              disabled={page === Math.ceil(products.length / pageSize)}
+              className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-xl font-bold uppercase text-xs disabled:opacity-20 transition-all"
+            >
+              Вперёд
+            </button>
+          </div>
         </div>
       )}
 

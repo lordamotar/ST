@@ -10,6 +10,7 @@ class Category(Base):
     name: Mapped[str] = mapped_column(String(100), unique=True)
     slug: Mapped[str] = mapped_column(String(100), unique=True, index=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     products: Mapped[List["Product"]] = relationship(back_populates="category")
 

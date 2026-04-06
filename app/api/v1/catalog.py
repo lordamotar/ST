@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.models.product import Product, Category
 from app.schemas.product import (
     ProductResponse, CategoryResponse, ProductCreate, ProductUpdate,
+    CategoryCreate, CategoryUpdate,
     BulkImportResponse, BulkImportError,
 )
 
@@ -598,3 +599,62 @@ async def download_excel_template(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=products_import_template.xlsx"}
     )
+
+# =====================================================================
+# ADMIN ENDPOINTS — CATEGORY CRUD
+# =====================================================================
+
+@router.post("/categories", response_model=CategoryResponse, status_code=201)
+async def create_category(
+    category_in: CategoryCreate,
+    admin_token: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db)
+):
+    check_admin(admin_token)
+    db_cat = Category(**category_in.model_dump())
+    db.add(db_cat)
+    await db.commit()
+    await db.refresh(db_cat)
+    return db_cat
+
+@router.patch("/categories/{cat_id}", response_model=CategoryResponse)
+async def update_category(
+    cat_id: int,
+    category_in: CategoryUpdate,
+    admin_token: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db)
+):
+    check_admin(admin_token)
+    result = await db.execute(select(Category).where(Category.id == cat_id))
+    db_cat = result.scalar_one_or_none()
+    if not db_cat:
+        raise HTTPException(status_code=404, detail="Категория не найдена")
+
+    update_data = category_in.model_dump(exclude_unset=True)
+    for k, v in update_data.items():
+        setattr(db_cat, k, v)
+
+    await db.commit()
+    await db.refresh(db_cat)
+    return db_cat
+
+@router.delete("/categories/{cat_id}")
+async def delete_category(
+    cat_id: int,
+    admin_token: Optional[str] = Header(None),
+    db: AsyncSession = Depends(get_db)
+):
+    check_admin(admin_token)
+    result = await db.execute(select(Category).where(Category.id == cat_id))
+    db_cat = result.scalar_one_or_none()
+    if not db_cat:
+        raise HTTPException(status_code=404, detail="Категория не найдена")
+    
+    # Optional: check if category has products
+    prod_result = await db.execute(select(Product).where(Product.category_id == cat_id))
+    if prod_result.scalars().first():
+         raise HTTPException(status_code=400, detail="Нельзя удалить категорию, в которой есть товары")
+
+    await db.delete(db_cat)
+    await db.commit()
+    return {"message": "Категория удалена"}
