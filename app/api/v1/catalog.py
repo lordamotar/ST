@@ -51,6 +51,7 @@ async def get_products(
     color: Optional[str] = None,
     slug: Optional[str] = None,
     q: Optional[str] = None,
+    sort: Optional[str] = None,  # price_asc, price_desc, newest
     db: AsyncSession = Depends(get_db)
 ):
     """Каталог товаров с фильтрацией и поиском."""
@@ -72,6 +73,17 @@ async def get_products(
             Product.name.ilike(f"%{q}%") |
             func.coalesce(Product.description, "").ilike(f"%{q}%")
         )
+
+    # Sorting
+    if sort == "price_asc":
+        query = query.order_by(Product.price.asc())
+    elif sort == "price_desc":
+        query = query.order_by(Product.price.desc())
+    elif sort == "newest":
+        query = query.order_by(Product.id.desc())
+    else:
+        # Default sort
+        query = query.order_by(Product.id.desc())
 
     result = await db.execute(query)
     return result.scalars().all()

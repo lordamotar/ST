@@ -11,10 +11,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   
-  if (!product) return { title: "Товар не найден | LuxeFurniture" };
+  if (!product) return { title: "Товар не найден | Stoly-Sklad" };
 
   return {
-    title: `${product.name} — Купить за ${product.price.toLocaleString()} ₽ | LuxeFurniture`,
+    title: `${product.name} — Купить за ${product.price.toLocaleString()} ₽ | Stoly-Sklad`,
     description: `Закажите ${product.name.toLowerCase()} из материала ${product.material}. Премиальное качество, индивидуальный подход.`,
   };
 }

@@ -63,6 +63,19 @@ export default function AdminProducts() {
   // View Mode
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
 
+  // Filters
+  const [search, setSearch] = useState("");
+  const [catFilter, setCatFilter] = useState(0);
+  const [activeFilter, setActiveFilter] = useState<"" | "active" | "hidden">("")
+
+  const filtered = products.filter(p => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || p.name.toLowerCase().includes(q) || p.slug.includes(q);
+    const matchCat = !catFilter || p.category_id === catFilter;
+    const matchActive = activeFilter === "" || (activeFilter === "active" ? p.is_active : !p.is_active);
+    return matchSearch && matchCat && matchActive;
+  });
+
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -300,25 +313,68 @@ export default function AdminProducts() {
       </div>
 
       {/* ─── View Mode Toggle ─── */}
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-4">
         <button
           onClick={() => setViewMode("table")}
-          className={`flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
-            viewMode === "table" ? "bg-[var(--accent)] text-black" : "bg-white/5 hover:bg-white/10"
+          className={`flex items-center gap-2 px-5 py-2 text-xs font-medium uppercase tracking-wider rounded-xl transition-all ${
+            viewMode === "table" ? "bg-white/15 text-white" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
           }`}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
           Таблица
         </button>
         <button
           onClick={() => setViewMode("list")}
-          className={`flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${
-            viewMode === "list" ? "bg-[var(--accent)] text-black" : "bg-white/5 hover:bg-white/10"
+          className={`flex items-center gap-2 px-5 py-2 text-xs font-medium uppercase tracking-wider rounded-xl transition-all ${
+            viewMode === "list" ? "bg-white/15 text-white" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
           }`}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
           Список
         </button>
+      </div>
+
+      {/* ─── Filters ─── */}
+      <div className="flex flex-wrap gap-2 mb-6 p-3 bg-white/3 rounded-2xl border border-white/5">
+        <div className="relative flex-1 min-w-[200px]">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 opacity-25" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            type="text"
+            placeholder="Поиск по названию..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            className="w-full bg-white/5 border border-white/8 rounded-xl pl-8 pr-4 py-2 text-sm text-white/70 placeholder:text-white/25 outline-none focus:border-white/20 transition-all"
+          />
+          {search && (
+            <button onClick={() => { setSearch(""); setPage(1); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-all">×</button>
+          )}
+        </div>
+        <select
+          value={catFilter}
+          onChange={e => { setCatFilter(Number(e.target.value)); setPage(1); }}
+          className="bg-[#111] border border-white/8 rounded-xl px-4 py-2 text-sm text-white/60 outline-none focus:border-white/20 transition-all min-w-[160px] cursor-pointer"
+        >
+          <option value={0} className="bg-[#111] text-white/60">Все категории</option>
+          {categories.map(c => <option key={c.id} value={c.id} className="bg-[#111] text-white/80">{c.name}</option>)}
+        </select>
+        {([["", "Все"], ["active", "Активные"], ["hidden", "Скрытые"]] as const).map(([val, label]) => (
+          <button
+            key={val}
+            onClick={() => { setActiveFilter(val); setPage(1); }}
+            className={`px-4 py-2 text-xs font-medium uppercase tracking-wider rounded-xl transition-all ${
+              activeFilter === val ? "bg-white/15 text-white" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+            }`}
+          >{label}</button>
+        ))}
+        {(search || catFilter !== 0 || activeFilter) && (
+          <button
+            onClick={() => { setSearch(""); setCatFilter(0); setActiveFilter(""); setPage(1); }}
+            className="px-3 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-xs text-white/40 hover:text-white/70 font-medium uppercase transition-all"
+          >
+            Сброс
+          </button>
+        )}
+        <span className="self-center text-xs text-white/25 font-medium ml-auto">{filtered.length} / {products.length}</span>
       </div>
 
       {/* ─── Product List / Table ─── */}
@@ -330,9 +386,13 @@ export default function AdminProducts() {
         <div className="h-40 flex items-center justify-center glass rounded-3xl opacity-30">
           <p className="text-2xl font-bold uppercase">Товаров нет</p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="h-32 flex items-center justify-center glass rounded-2xl opacity-40">
+          <p className="font-bold uppercase">Ничего не найдено</p>
+        </div>
       ) : viewMode === "list" ? (
         <div className="grid grid-cols-1 gap-4">
-          {products.slice((page - 1) * pageSize, page * pageSize).map((p) => (
+          {filtered.slice((page - 1) * pageSize, page * pageSize).map((p) => (
             <div key={p.id} className="glass p-6 rounded-[2rem] flex flex-col md:flex-row items-center gap-6 hover:border-[var(--accent)]/20 transition-all">
               {/* Thumbnail */}
               <div className="w-14 h-14 rounded-xl overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
@@ -391,7 +451,7 @@ export default function AdminProducts() {
               </tr>
             </thead>
             <tbody>
-              {products.slice((page - 1) * pageSize, page * pageSize).map((p) => {
+              {filtered.slice((page - 1) * pageSize, page * pageSize).map((p) => {
                 const specs = p.characteristics ?? {};
                 const g = (key: string) => specs[key] || p[key as keyof Product] as string || "—";
                 return (
@@ -482,7 +542,7 @@ export default function AdminProducts() {
       )}
 
       {/* Пагинация продуктов */}
-      {!loading && products.length > 0 && (
+      {!loading && filtered.length > 0 && (
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-8 bg-white/5 p-4 rounded-2xl border border-white/10">
           <div className="flex items-center gap-3">
             <span className="text-sm font-bold opacity-40 uppercase tracking-wider">Показывать по:</span>
@@ -506,11 +566,11 @@ export default function AdminProducts() {
               Назад
             </button>
             <span className="text-sm font-black font-mono">
-              {page} / {Math.ceil(products.length / pageSize)}
+              {page} / {Math.ceil(filtered.length / pageSize)}
             </span>
             <button
-              onClick={() => setPage(p => Math.min(Math.ceil(products.length / pageSize), p + 1))}
-              disabled={page === Math.ceil(products.length / pageSize)}
+              onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / pageSize), p + 1))}
+              disabled={page === Math.ceil(filtered.length / pageSize)}
               className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-xl font-bold uppercase text-xs disabled:opacity-20 transition-all"
             >
               Вперёд

@@ -3,13 +3,14 @@
 :root {
   --background: #fdfcfb;
   --foreground: #1a1a1a;
-  --accent: #c5a059; /* Мягкое золото */
-  --accent-foreground: #ffffff;
+  --accent: #c5a059;
+  --accent-soft: rgba(197, 160, 89, 0.1);
+  --accent-muted: #e2d1b0;
   --muted: #f4f4f4;
   --muted-foreground: #737373;
   --card: rgba(255, 255, 255, 0.7);
   --card-border: rgba(255, 255, 255, 0.3);
-  --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,8 +18,10 @@
     --background: #0f1115;
     --foreground: #f5f5f5;
     --accent: #d4af37;
+    --accent-soft: rgba(212, 175, 55, 0.1);
     --card: rgba(30, 32, 38, 0.6);
     --card-border: rgba(255, 255, 255, 0.05);
+    --card-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   }
 }
 
@@ -32,24 +35,68 @@ body {
 /* Эффект Glassmorphism */
 .glass {
   background: var(--card);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--card-border);
   box-shadow: var(--card-shadow);
 }
 
 /* Плавный градиент для заголовков */
 .text-gradient {
-  background: linear-gradient(135deg, var(--foreground) 0%, var(--accent) 100%);
+  background: linear-gradient(135deg, var(--foreground) 30%, var(--accent) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* Анимация при наведении */
+/* Анимации наведения */
 .hover-scale {
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .hover-scale:hover {
   transform: scale(1.02);
+  border-color: var(--accent);
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 30px var(--accent-soft);
+}
+
+/* Декоративные элементы */
+.pattern-bg {
+  background-image: radial-gradient(var(--card-border) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Reveal animation wrapper */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Header blur effect */
+.nav-blur {
+  background: rgba(var(--background), 0.7);
+  backdrop-filter: saturate(180%) blur(20px);
 }

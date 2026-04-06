@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Админ-панель | LuxeFurniture",
+  title: "Админ-панель | Stoly-Sklad",
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

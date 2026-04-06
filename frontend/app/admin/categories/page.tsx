@@ -33,6 +33,17 @@ export default function AdminCategories() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const PAGE_SIZES = [10, 25, 50, 100];
+
+  // Filters
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"" | "active" | "hidden">("")
+
+  const filtered = categories.filter(c => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || c.name.toLowerCase().includes(q) || c.slug.includes(q);
+    const matchActive = activeFilter === "" || (activeFilter === "active" ? c.is_active : !c.is_active);
+    return matchSearch && matchActive;
+  });
   
   // Modal states
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
@@ -154,7 +165,7 @@ export default function AdminCategories() {
 
   return (
     <div className="max-w-7xl mx-auto px-8 py-20 animate-in fade-in duration-500">
-      <div className="flex flex-wrap justify-between items-center mb-12 gap-4">
+      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
         <div>
           <h1 className="text-5xl font-outfit font-black uppercase text-gradient">Категории</h1>
           <p className="opacity-40 font-medium mt-1">{categories.length} категорий</p>
@@ -167,15 +178,42 @@ export default function AdminCategories() {
         </button>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 mb-6 p-3 bg-white/3 rounded-2xl border border-white/5">
+        <div className="relative flex-1 min-w-[200px]">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 opacity-25" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            type="text"
+            placeholder="Поиск по названию или slug..."
+            value={search}
+            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            className="w-full bg-white/5 border border-white/8 rounded-xl pl-8 pr-4 py-2 text-sm text-white/70 placeholder:text-white/25 outline-none focus:border-white/20 transition-all"
+          />
+          {search && (
+            <button onClick={() => { setSearch(""); setPage(1); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70 transition-all">×</button>
+          )}
+        </div>
+        {([["", "Все"], ["active", "Активные"], ["hidden", "Скрытые"]] as const).map(([val, label]) => (
+          <button
+            key={val}
+            onClick={() => { setActiveFilter(val); setPage(1); }}
+            className={`px-4 py-2 text-xs font-medium uppercase tracking-wider rounded-xl transition-all ${
+              activeFilter === val ? "bg-white/15 text-white" : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+            }`}
+          >{label}</button>
+        ))}
+        <span className="self-center text-xs text-white/25 font-medium ml-auto">{filtered.length} / {categories.length}</span>
+      </div>
+
       {loading ? (
         <div className="text-center py-20 opacity-50 font-outfit uppercase tracking-widest animate-pulse">Загрузка...</div>
-      ) : categories.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="glass p-16 rounded-[3rem] text-center opacity-50">
-          <p className="text-2xl font-outfit">Категорий пока нет</p>
+          <p className="text-2xl font-outfit">{categories.length === 0 ? "Категорий пока нет" : "Ничего не найдено"}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.slice((page - 1) * pageSize, page * pageSize).map((c) => (
+          {filtered.slice((page - 1) * pageSize, page * pageSize).map((c) => (
             <div key={c.id} className="glass p-6 rounded-[2rem] flex flex-col group hover:border-white/20 transition-all duration-500 relative overflow-hidden">
               <div className="mb-4">
                 <div className="flex justify-between items-start">
@@ -212,7 +250,7 @@ export default function AdminCategories() {
       )}
 
       {/* пагинация */}
-      {!loading && categories.length > 0 && (
+      {!loading && filtered.length > 0 && (
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-8 bg-white/5 p-4 rounded-2xl border border-white/10">
           <div className="flex items-center gap-3">
             <span className="text-sm font-bold opacity-40 uppercase tracking-wider">Показывать по:</span>
@@ -227,7 +265,6 @@ export default function AdminCategories() {
               {PAGE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
-          
           <div className="flex justify-center items-center gap-4">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -237,11 +274,11 @@ export default function AdminCategories() {
               Назад
             </button>
             <span className="text-sm font-black font-mono">
-              {page} / {Math.ceil(categories.length / pageSize)}
+              {page} / {Math.ceil(filtered.length / pageSize)}
             </span>
             <button
-              onClick={() => setPage(p => Math.min(Math.ceil(categories.length / pageSize), p + 1))}
-              disabled={page === Math.ceil(categories.length / pageSize)}
+              onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / pageSize), p + 1))}
+              disabled={page === Math.ceil(filtered.length / pageSize)}
               className="px-6 py-2 bg-white/5 hover:bg-white/10 rounded-xl font-bold uppercase text-xs disabled:opacity-20 transition-all"
             >
               Вперёд
