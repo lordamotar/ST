@@ -1,6 +1,8 @@
 import asyncio
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
@@ -8,6 +10,10 @@ from app.core.database import engine, Base
 from app.api.v1.users import router as users_router
 from app.api.v1.catalog import router as catalog_router
 from app.api.v1.orders import router as orders_router
+
+# --- Директория для загрузок ---
+UPLOAD_DIR = Path("uploads/products")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # --- Контекст жизненного цикла (Lifespan) ---
 @asynccontextmanager
@@ -40,6 +46,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# --- Раздача загруженных файлов ---
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 @app.get("/")
 async def root():
     return {
@@ -53,3 +62,4 @@ async def root():
 app.include_router(users_router, prefix="/api/v1")
 app.include_router(catalog_router, prefix="/api/v1/catalog", tags=["catalog"])
 app.include_router(orders_router, prefix="/api/v1/orders", tags=["orders"])
+
