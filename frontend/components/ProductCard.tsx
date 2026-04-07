@@ -70,10 +70,15 @@ export default function ProductCard({ product }: { product: any }) {
           </div>
         </div>
 
-        <div className="flex justify-between items-center mt-auto pt-4 border-t border-white/5">
+        <div className="flex justify-between items-center mt-auto pt-6 border-t border-white/5">
           <div className="flex flex-col">
-            <span className="text-[9px] font-black uppercase tracking-widest opacity-20">Price</span>
-            <span className="text-2xl font-black text-white">{product.price.toLocaleString()} ₽</span>
+            <span className="text-[9px] font-black uppercase tracking-widest opacity-20 mb-1">Price</span>
+            <div className="flex items-baseline gap-3">
+              <span className="text-2xl font-black text-[var(--accent)]">{product.new_price?.toLocaleString()} ₸</span>
+              {product.old_price && (
+                <span className="text-sm font-bold opacity-30 line-through decoration-white/50">{product.old_price?.toLocaleString()} ₸</span>
+              )}
+            </div>
           </div>
           <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-[var(--accent)] group-hover:border-[var(--accent)] group-hover:text-black transition-all duration-500 hover-glow">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>

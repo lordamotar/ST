@@ -20,7 +20,8 @@ class Product(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200))
     slug: Mapped[str] = mapped_column(String(200), unique=True, index=True)
-    price: Mapped[float] = mapped_column(Float)
+    new_price: Mapped[float] = mapped_column(Float)
+    old_price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))

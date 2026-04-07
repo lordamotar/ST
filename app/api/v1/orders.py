@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.models.order import Order
 from app.schemas.order import OrderCreate, OrderResponse, OrderUpdateStatus
 from app.core.config import settings
+from loguru import logger
 
 router = APIRouter()
 
@@ -21,7 +22,14 @@ async def create_order(order_in: OrderCreate, db: AsyncSession = Depends(get_db)
     )
     db.add(db_order)
     await db.commit()
-    await db.refresh(db_order)
+    
+    # Подгружаем заказ с товаром для корректного ответа (избегаем MissingGreenlet)
+    result = await db.execute(
+        select(Order).options(selectinload(Order.product)).where(Order.id == db_order.id)
+    )
+    db_order = result.scalar_one()
+    
+    logger.info(f"New order created: ID={db_order.id}, Customer={db_order.customer_name}, Phone={db_order.customer_phone}")
     return db_order
 
 @router.get("/", response_model=List[OrderResponse])
@@ -30,6 +38,7 @@ async def list_orders(
     db: AsyncSession = Depends(get_db)
 ):
     if admin_token != settings.JWT_SECRET:
+        logger.warning("Failed admin access attempt to list orders")
         raise HTTPException(status_code=403, detail="Forbidden: Invalid Admin Token")
     result = await db.execute(select(Order).options(selectinload(Order.product)).order_by(Order.created_at.desc()))
     return result.scalars().all()
@@ -42,6 +51,7 @@ async def update_order_status(
     db: AsyncSession = Depends(get_db)
 ):
     if admin_token != settings.JWT_SECRET:
+        logger.warning(f"Failed admin access attempt to update status for order {order_id}")
         raise HTTPException(status_code=403, detail="Forbidden: Invalid Admin Token")
     
     # 1. Поиск заказа
@@ -52,6 +62,7 @@ async def update_order_status(
         raise HTTPException(status_code=404, detail="Order not found")
     
     # 2. Обновление статуса
+    old_status = db_order.status
     if db_order.status == "new" and status_update.status != "new":
         db_order.processed_by = "Admin"
     
@@ -60,5 +71,6 @@ async def update_order_status(
     
     await db.commit()
     await db.refresh(db_order)
+    logger.info(f"Order {order_id} status changed: {old_status} -> {db_order.status} (by Admin)")
     
     return db_order

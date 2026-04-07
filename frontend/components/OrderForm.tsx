@@ -60,9 +60,31 @@ export default function OrderForm({ productId, productName }: { productId: numbe
             required
             type="tel"
             value={formData.phone}
-            onChange={(e) => setFormData({...formData, phone: e.target.value})}
-            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[var(--accent)] transition-all"
-            placeholder="+7 (900) 000-00-00"
+            onChange={(e) => {
+              let val = e.target.value.replace(/\D/g, ""); // Только цифры
+              
+              // Если в начале 7 или 8, отрезаем её
+              if (val.startsWith("7") || val.startsWith("8")) {
+                val = val.substring(1);
+              }
+              
+              // Ограничиваем до 10 цифр (основная часть)
+              val = val.substring(0, 10);
+              
+              // Форматируем маску +7 777 777 77 77
+              let masked = "+7";
+              if (val.length > 0) masked += " " + val.substring(0, 3);
+              if (val.length > 3) masked += " " + val.substring(3, 6);
+              if (val.length > 6) masked += " " + val.substring(6, 8);
+              if (val.length > 8) masked += " " + val.substring(8, 10);
+              
+              setFormData({...formData, phone: masked});
+            }}
+            onFocus={(e) => {
+              if (!formData.phone) setFormData({...formData, phone: "+7 "});
+            }}
+            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[var(--accent)] transition-all font-mono"
+            placeholder="+7 777 777 77 77"
           />
         </div>
         <button 

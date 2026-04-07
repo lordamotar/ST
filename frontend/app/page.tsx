@@ -138,10 +138,10 @@ export default async function Home() {
               Качество, которое <br/> можно потрогать
             </h2>
             <p className="opacity-50 text-lg mb-10 leading-relaxed">
-              Посетите наш шоурум в центре Москвы, чтобы лично убедиться в безупречном качестве материалов и удобстве наших моделей. Мы используем только ценные породы дерева и премиальный текстиль.
+              Посетите наш шоурум в центре Семея, чтобы лично убедиться в безупречном качестве материалов и удобстве наших моделей.
             </p>
             <div className="space-y-4 mb-12">
-              {["Собственное производство", "Гарантия 24 месяца", "Примерка в интерьере"].map((text, i) => (
+              {["Собственное производство", "Гарантия 24 месяца"].map((text, i) => (
                 <div key={i} className="flex items-center gap-4">
                   <div className="w-5 h-5 rounded-full bg-[var(--accent)] flex items-center justify-center">
                     <svg className="text-black" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"/></svg>

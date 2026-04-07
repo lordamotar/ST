@@ -11,6 +11,14 @@ from app.api.v1.users import router as users_router
 from app.api.v1.catalog import router as catalog_router
 from app.api.v1.orders import router as orders_router
 
+from loguru import logger
+import sys
+
+# Настройка логгера
+logger.remove()
+logger.add(sys.stderr, format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level:7}</level> | <cyan>{message}</cyan>", level="INFO")
+logger.add("logs/app.log", rotation="10 MB", retention="10 days", compression="zip", level="DEBUG")
+
 # --- Директория для загрузок ---
 UPLOAD_DIR = Path("uploads/products")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -20,15 +28,15 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 async def lifespan(app: FastAPI):
     # 1. Автоматическое создание таблиц
     async with engine.begin() as conn:
-        print("Initializing Furniture Database...")
+        logger.info("Initializing Furniture Database...")
         from app.models.product import Category, Product 
         from app.models.user import User 
         from app.models.order import Order
         await conn.run_sync(Base.metadata.create_all)
     
-    print(f"Starting {settings.PROJECT_NAME} v{settings.VERSION}...")
+    logger.info(f"Starting {settings.PROJECT_NAME} v{settings.VERSION}...")
     yield
-    print("Shutting down...")
+    logger.info("Shutting down...")
 
 # --- Инициализация FastAPI ---
 app = FastAPI(

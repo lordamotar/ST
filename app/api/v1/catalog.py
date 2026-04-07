@@ -17,6 +17,7 @@ from app.schemas.product import (
     CategoryCreate, CategoryUpdate,
     BulkImportResponse, BulkImportError,
 )
+from loguru import logger
 
 router = APIRouter()
 
@@ -76,9 +77,9 @@ async def get_products(
 
     # Sorting
     if sort == "price_asc":
-        query = query.order_by(Product.price.asc())
+        query = query.order_by(Product.new_price.asc())
     elif sort == "price_desc":
-        query = query.order_by(Product.price.desc())
+        query = query.order_by(Product.new_price.desc())
     elif sort == "newest":
         query = query.order_by(Product.id.desc())
     else:
@@ -106,6 +107,7 @@ async def create_product(
     db.add(db_product)
     await db.commit()
     await db.refresh(db_product)
+    logger.info(f"New product created: {db_product.name} (ID: {db_product.id}, Price: {db_product.new_price} ₸)")
 
     # Подгружаем связанную категорию для ответа
     result = await db.execute(
@@ -161,6 +163,7 @@ async def delete_product(
 
     await db.delete(db_product)
     await db.commit()
+    logger.info(f"Product deleted: {db_product.name} (ID: {db_product.id})")
 
 
 # =====================================================================
@@ -186,6 +189,7 @@ async def toggle_product_status(
     db_product.is_active = not db_product.is_active
     await db.commit()
     await db.refresh(db_product)
+    logger.info(f"Product status toggled: {db_product.name} (ID: {db_product.id}, Active: {db_product.is_active})")
 
     result = await db.execute(
         select(Product).where(Product.id == product_id).options(selectinload(Product.category))
@@ -309,13 +313,16 @@ async def bulk_import_products(
         col_map = {}
         dynamic_cols = {}
         expected = [
-            "name", "price", "category_id", "slug", "material", "color", "description", "image_url", "is_active", "availability_status",
+            "name", "new_price", "old_price", "category_id", "slug", "material", "color", "description", "image_url", "is_active", "availability_status",
             "dimensions", "legs_material", "tabletop_material", "tabletop_thickness", "floor_clearance", "max_load",
             "legs_adjustment", "tabletop_color", "footings", "warranty", "delivery_format", "supports", "country", "series"
         ]
         
         # Переводы для удобства пользователей
         aliases = {
+            "новая цена": "new_price",
+            "старая цена": "old_price",
+            "цена": "new_price",
             "размеры": "dimensions",
             "материал ножек (опор)": "legs_material",
             "материал столешницы": "tabletop_material",
@@ -341,10 +348,10 @@ async def bulk_import_products(
             elif h_lower and not h_lower.startswith("unnamed"):
                 dynamic_cols[h_orig] = idx
 
-        if "name" not in col_map or "price" not in col_map:
+        if "name" not in col_map or "new_price" not in col_map:
             raise HTTPException(
                 status_code=400,
-                detail="В файле должны быть столбцы 'name' и 'price'. "
+                detail="В файле должны быть столбцы 'name' и 'новая цена'. "
                        f"Найденные заголовки: {headers}"
             )
 
@@ -363,10 +370,12 @@ async def bulk_import_products(
                     skipped += 1
                     continue
 
-                price = float(row[col_map["price"]]) if row[col_map["price"]] else None
-                if price is None or price <= 0:
-                    errors.append(BulkImportError(row=row_idx, error=f"Некорректная цена: {row[col_map['price']]}"))
+                new_price = float(row[col_map["new_price"]]) if row[col_map["new_price"]] else None
+                if new_price is None or new_price <= 0:
+                    errors.append(BulkImportError(row=row_idx, error=f"Некорректная цена: {row[col_map['new_price']]}"))
                     continue
+
+                old_price = float(row[col_map["old_price"]]) if col_map.get("old_price") is not None and row[col_map["old_price"]] else None
 
                 category_id = int(row[col_map.get("category_id", -1)]) if col_map.get("category_id") is not None and row[col_map["category_id"]] else None
                 if not category_id:
@@ -447,7 +456,8 @@ async def bulk_import_products(
                 product = Product(
                     name=name,
                     slug=slug,
-                    price=price,
+                    new_price=new_price,
+                    old_price=old_price,
                     category_id=category_id,
                     material=material,
                     color=color,
@@ -479,9 +489,9 @@ async def bulk_import_products(
 
         if created > 0:
             await db.commit()
-
+        
+        logger.info(f"Bulk import finished: {created} products created, {skipped} skipped, {len(errors)} errors")
         wb.close()
-
         return BulkImportResponse(created=created, skipped=skipped, errors=errors)
 
     except HTTPException:
@@ -516,14 +526,14 @@ async def download_excel_template(
 
     # Заголовки
     headers = [
-        "name", "price", "category_id", "slug",
+        "name", "new_price", "old_price", "category_id", "slug",
         "material", "color", "description", "image_url", "is_active", "availability_status",
         "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
         "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
         "Подпятники", "Гарантия", "Вариант доставки", "Опоры", "Страна", "Серия"
     ]
     header_labels = [
-        "Название товара *", "Цена (₽) *", "ID Категории *", "Slug (URL)",
+        "Название товара *", "Новая цена (₸) *", "Старая цена (₸)", "ID Категории *", "Slug (URL)",
         "Материал", "Цвет", "Описание товара", "Ссылка на фото", "Активен (TRUE/FALSE)", "Наличие (в наличии/под заказ)",
         "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
         "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
@@ -555,7 +565,7 @@ async def download_excel_template(
 
     # Примеры данных (строки 3-5)
     examples = [
-        ["Стул 'Осло' из дуба", 12500, 1, "oslo-oak-chair", "oak", "natural",
+        ["Стул 'Осло' из дуба", 125000, 150000, 1, "oslo-oak-chair", "oak", "natural",
          "Эргономичный стул из массива дуба.",
          "https://example.com/photos/oslo-chair.jpg", True, "в наличии",
          "Длина 120 смхШирина 60 смхВысота 75 см", "сталь", "МДФ 15 мм", "1.5 см", "12 см", "15 кг", "нет", "Дуб Натуральный", "пластиковые", "12 месяцев", "в разобранном виде", "Черный", "Китай", "Рико"]

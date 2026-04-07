@@ -28,7 +28,8 @@ class CategoryUpdate(BaseModel):
 class ProductBase(BaseModel):
     name: str
     slug: str
-    price: float
+    new_price: float
+    old_price: Optional[float] = None
     description: Optional[str] = None
     image_url: Optional[str] = None
     material: Optional[str] = None
@@ -60,7 +61,8 @@ class ProductCreate(ProductBase):
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     slug: Optional[str] = None
-    price: Optional[float] = None
+    new_price: Optional[float] = None
+    old_price: Optional[float] = None
     description: Optional[str] = None
     image_url: Optional[str] = None
     material: Optional[str] = None

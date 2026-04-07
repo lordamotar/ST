@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!product) return { title: "Товар не найден | Stoly-Sklad" };
 
   return {
-    title: `${product.name} — Купить за ${product.price.toLocaleString()} ₽ | Stoly-Sklad`,
+    title: `${product.name} — Купить за ${product.new_price.toLocaleString()} ₸ | Stoly-Sklad`,
     description: `Закажите ${product.name.toLowerCase()} из материала ${product.material}. Премиальное качество, индивидуальный подход.`,
   };
 }
@@ -113,17 +113,24 @@ export default async function ProductPage({ params }: Props) {
             <h1 className="text-5xl md:text-7xl font-outfit font-black uppercase mb-6 leading-none text-gradient">
               {product.name}
             </h1>
-            <div className="flex items-center gap-4 mb-8">
-              <span className="text-4xl font-black">{product.price.toLocaleString()} ₽</span>
-              {(!product.availability_status || product.availability_status === 'in_stock') && (
-                <span className="bg-emerald-500/15 text-emerald-500 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider border border-emerald-500/20">В наличии</span>
-              )}
-              {product.availability_status === 'on_order' && (
-                <span className="bg-amber-500/15 text-amber-500 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider border border-amber-500/20">Под заказ</span>
-              )}
-              {product.availability_status === 'out_of_stock' && (
-                <span className="bg-red-500/15 text-red-500 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider border border-red-500/20">Нет в наличии</span>
-              )}
+            <div className="flex items-center gap-6 mb-8 flex-wrap">
+              <div className="flex items-baseline gap-4">
+                <span className="text-5xl md:text-6xl font-black text-[var(--accent)]">{product.new_price.toLocaleString()} ₸</span>
+                {product.old_price && (
+                  <span className="text-xl font-bold opacity-30 line-through decoration-white/50">{product.old_price.toLocaleString()} ₸</span>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {(!product.availability_status || product.availability_status === 'in_stock') && (
+                  <span className="bg-emerald-500/15 text-emerald-500 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider border border-emerald-500/20">В наличии</span>
+                )}
+                {product.availability_status === 'on_order' && (
+                  <span className="bg-amber-500/15 text-amber-500 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider border border-amber-500/20">Под заказ</span>
+                )}
+                {product.availability_status === 'out_of_stock' && (
+                  <span className="bg-red-500/15 text-red-500 px-4 py-1.5 rounded-full text-sm font-bold uppercase tracking-wider border border-red-500/20">Нет в наличии</span>
+                )}
+              </div>
             </div>
             
             <p className="text-xl opacity-80 leading-relaxed mb-10 text-pretty">

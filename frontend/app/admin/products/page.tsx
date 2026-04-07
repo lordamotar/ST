@@ -5,7 +5,7 @@ import { API_URL, uploadProductImage, bulkImportProducts, toggleProductStatus } 
 
 interface Category { id: number; name: string; slug: string; }
 interface Product {
-  id: number; name: string; slug: string; price: number;
+  id: number; name: string; slug: string; new_price: number; old_price?: number;
   material?: string; color?: string; description?: string;
   image_url?: string; characteristics?: Record<string, string>;
   category_id: number; is_active: boolean; availability_status: string;
@@ -16,7 +16,7 @@ interface Product {
 }
 
 const EMPTY_FORM = { 
-  name: "", slug: "", price: 0, material: "", color: "", description: "", category_id: 1, is_active: true, availability_status: "in_stock", image_url: "", 
+  name: "", slug: "", new_price: 0, old_price: 0, material: "", color: "", description: "", category_id: 1, is_active: true, availability_status: "in_stock", image_url: "", 
   characteristics: [] as {k: string; v: string}[],
   dimensions: "", legs_material: "", tabletop_material: "", tabletop_thickness: "",
   floor_clearance: "", max_load: "", legs_adjustment: "", tabletop_color: "",
@@ -181,7 +181,7 @@ export default function AdminProducts() {
   const openEdit = (p: Product) => {
     const charsArray = Object.entries(p.characteristics || {}).map(([k, v]) => ({ k, v }));
     setForm({
-      name: p.name, slug: p.slug, price: p.price,
+      name: p.name, slug: p.slug, new_price: p.new_price, old_price: p.old_price ?? 0,
       material: p.material ?? "", color: p.color ?? "",
       description: p.description ?? "", category_id: p.category_id,
       is_active: p.is_active, availability_status: p.availability_status || "in_stock", image_url: p.image_url ?? "",
@@ -206,7 +206,8 @@ export default function AdminProducts() {
       });
       const body = { 
         ...form, 
-        price: Number(form.price), 
+        new_price: Number(form.new_price),
+        old_price: form.old_price ? Number(form.old_price) : null,
         category_id: Number(form.category_id),
         characteristics: charRecord 
       };
@@ -414,7 +415,10 @@ export default function AdminProducts() {
               {p.material && (
                 <span className="text-sm bg-white/5 px-3 py-1 rounded-full font-medium shrink-0">{p.material}</span>
               )}
-              <span className="font-black text-lg shrink-0">{p.price.toLocaleString()} ₽</span>
+              <div className="flex flex-col items-end shrink-0">
+                <span className="font-black text-lg text-[var(--accent)]">{p.new_price.toLocaleString()} ₸</span>
+                {p.old_price && <span className="text-[10px] opacity-30 line-through">{p.old_price.toLocaleString()} ₸</span>}
+              </div>
               <button
                 onClick={() => handleToggle(p.id)}
                 disabled={togglingId === p.id}
@@ -441,7 +445,7 @@ export default function AdminProducts() {
             <thead>
               <tr className="bg-white/5 border-b border-white/10">
                 {[
-                  "№", "Действия", "Фото", "Название", "Категория", "Описание", "Цена",
+                  "№", "Действия", "Фото", "Название", "Категория", "Описание", "Новая цена", "Старая цена",
                   "Размеры", "Мат. ножек", "Мат. столешн.", "Толщ. столешн.",
                   "Просвет", "Макс. нагр.", "Регул. опор", "Цв. столешн.",
                   "Подпятники", "Гарантия", "Доставка", "Цвет", "Опоры", "Страна", "Серия"
@@ -502,7 +506,13 @@ export default function AdminProducts() {
                       <p className="text-xs opacity-60 line-clamp-2" title={p.description ?? ""}>{p.description || "—"}</p>
                     </td>
                     {/* Цена */}
-                    <td className="px-4 py-3 font-black whitespace-nowrap">{p.price.toLocaleString()} ₽</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex flex-col">
+                        <span className="font-black text-[var(--accent)]">{p.new_price.toLocaleString()} ₸</span>
+                        {p.old_price && <span className="text-[10px] opacity-20 line-through">{p.old_price.toLocaleString()} ₸</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 opacity-20 whitespace-nowrap">{p.old_price ? `${p.old_price.toLocaleString()} ₸` : "—"}</td>
                     {/* Размеры */}
                     <td className="px-4 py-3 text-xs whitespace-nowrap opacity-80">{g("dimensions")}</td>
                     {/* Материал ножек */}
@@ -662,19 +672,28 @@ export default function AdminProducts() {
                 />
               </div>
 
-              {/* Цена + Категория */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase opacity-40 mb-1">Цена (₽)</label>
+                  <label className="block text-xs font-bold uppercase opacity-40 mb-1">Новая цена (₸)</label>
                   <input
                     type="number"
-                    value={form.price}
-                    onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                    value={form.new_price}
+                    onChange={(e) => setForm({ ...form, new_price: Number(e.target.value) })}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[var(--accent)] transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase opacity-40 mb-1">Категория</label>
+                  <label className="block text-xs font-bold uppercase opacity-40 mb-1">Старая цена (₸)</label>
+                  <input
+                    type="number"
+                    value={form.old_price}
+                    onChange={(e) => setForm({ ...form, old_price: Number(e.target.value) })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[var(--accent)] transition-all"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase opacity-40 mb-1">Категория</label>
                   <select
                     value={form.category_id}
                     onChange={(e) => setForm({ ...form, category_id: Number(e.target.value) })}
@@ -685,7 +704,6 @@ export default function AdminProducts() {
                     ))}
                   </select>
                 </div>
-              </div>
 
               {/* Материал + Цвет */}
               <div className="grid grid-cols-2 gap-4">
@@ -870,7 +888,7 @@ export default function AdminProducts() {
             <div className="bg-white/5 rounded-xl p-4 mb-4">
               <p className="text-xs font-bold uppercase opacity-40 mb-2">Столбцы в файле:</p>
               <div className="flex flex-wrap gap-2">
-                {["name*", "price*", "category_id*", "slug", "material", "color", "description", "image_url", "is_active"].map((col) => (
+                {["name*", "new_price*", "old_price", "category_id*", "slug", "material", "color", "description", "image_url", "is_active"].map((col) => (
                   <span
                     key={col}
                     className={`text-xs font-mono px-2 py-1 rounded-lg ${
