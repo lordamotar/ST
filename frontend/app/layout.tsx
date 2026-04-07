@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   keywords: ["мебель", "столы", "стулья", "лофт мебель", "купить мебель Москва"],
 };
 
+import UserNav from "@/components/UserNav";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -42,7 +44,8 @@ export default function RootLayout({
             <Link href="/catalog/chairs" className="hover:text-[var(--accent)] transition-colors">Стулья <span className="opacity-30">(Орындықтар)</span></Link>
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-8">
+            <UserNav />
             <button className="hidden sm:block text-xs font-bold uppercase tracking-wider opacity-40 hover:opacity-100 transition-all">Ru</button>
             <Link href="/contacts" className="bg-[var(--foreground)] text-[var(--background)] px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest hover:bg-[var(--accent)] transition-all hover-scale">
               Спецзаказ

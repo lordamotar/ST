@@ -12,11 +12,13 @@ from typing import List, Optional
 from app.core.database import get_db
 from app.core.config import settings
 from app.models.product import Product, Category
+from app.models.user import User
 from app.schemas.product import (
     ProductResponse, CategoryResponse, ProductCreate, ProductUpdate,
     CategoryCreate, CategoryUpdate,
     BulkImportResponse, BulkImportError,
 )
+from app.core.dependencies import check_admin, require_roles, get_current_user
 from loguru import logger
 
 router = APIRouter()
@@ -29,9 +31,7 @@ ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
-def check_admin(admin_token: Optional[str]):
-    if admin_token != settings.JWT_SECRET:
-        raise HTTPException(status_code=403, detail="Forbidden: Invalid Admin Token")
+# Код удален: использование новой системы JWT
 
 
 # =====================================================================
@@ -90,6 +90,280 @@ async def get_products(
     return result.scalars().all()
 
 
+@router.get("/products/template")
+async def download_excel_template(
+    admin: User = Depends(require_roles(["admin", "manager"]))
+):
+    """
+    Скачать шаблон Excel для массового импорта товаров.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from fastapi.responses import StreamingResponse
+    import io
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Товары"
+
+    # Заголовки
+    headers = [
+        "name", "new_price", "old_price", "category_id", "slug",
+        "material", "color", "description", "image_url", "is_active", "availability_status",
+        "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
+        "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
+        "Подпятники", "Гарантия", "Вариант доставки", "Опоры", "Страна", "Серия"
+    ]
+    header_labels = [
+        "Название товара *", "Новая цена (₸) *", "Старая цена (₸)", "ID Категории *", "Slug (URL)",
+        "Материал", "Цвет", "Описание товара", "Ссылка на фото", "Активен (TRUE/FALSE)", "Наличие (в наличии/под заказ)",
+        "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
+        "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
+        "Подпятники", "Гарантия", "Вариант доставки", "Опоры", "Страна", "Серия"
+    ]
+
+    # Стили заголовков
+    header_fill = PatternFill(start_color="D4AF37", end_color="D4AF37", fill_type="solid")
+    header_font = Font(name="Arial", size=11, bold=True, color="FFFFFF")
+    thin_border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+
+    # Строка 1: Машинные заголовки (для парсинга)
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    # Строка 2: Описание полей
+    desc_font = Font(name="Arial", size=9, italic=True, color="888888")
+    for col_idx, label in enumerate(header_labels, 1):
+        cell = ws.cell(row=2, column=col_idx, value=label)
+        cell.font = desc_font
+        cell.alignment = Alignment(horizontal="center")
+
+    # Примеры данных (строки 3-5)
+    examples = [
+        ["Стул 'Осло' из дуба", 125000, 150000, 1, "oslo-oak-chair", "oak", "natural",
+         "Эргономичный стул из массива дуба.",
+         "https://example.com/photos/oslo-chair.jpg", True, "в наличии",
+         "Длина 120 смхШирина 60 смхВысота 75 см", "сталь", "МДФ 15 мм", "1.5 см", "12 см", "15 кг", "нет", "Дуб Натуральный", "пластиковые", "12 месяцев", "в разобранном виде", "Черный", "Китай", "Рико"]
+    ]
+
+    data_font = Font(name="Arial", size=10)
+    for row_idx, row_data in enumerate(examples, 3):
+        for col_idx, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            cell.font = data_font
+            cell.border = thin_border
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+
+    # Ширина колонок
+    col_widths = [30, 12, 14, 25, 15, 12, 50, 40, 18, 25] + [15]*14
+    for col_idx, width in enumerate(col_widths, 1):
+        ws.column_dimensions[chr(64 + col_idx)].width = width
+
+    # Высота строк с примерами
+    for row_idx in range(3, 6):
+        ws.row_dimensions[row_idx].height = 45
+
+    # Лист 2: Справочник категорий
+    ws2 = wb.create_sheet(title="Категории (справочник)")
+    ws2.cell(row=1, column=1, value="ID").font = header_font
+    ws2.cell(row=1, column=1).fill = header_fill
+    ws2.cell(row=1, column=2, value="Название").font = header_font
+    ws2.cell(row=1, column=2).fill = header_fill
+    ws2.cell(row=1, column=3, value="Slug").font = header_font
+    ws2.cell(row=1, column=3).fill = header_fill
+
+    cat_examples = [
+        [1, "Стулья", "chairs"],
+        [2, "Диваны", "sofas"],
+        [3, "Столы", "tables"],
+        [4, "Шкафы", "cupboards"],
+    ]
+    for row_idx, cat in enumerate(cat_examples, 2):
+        for col_idx, value in enumerate(cat, 1):
+            ws2.cell(row=row_idx, column=col_idx, value=value).font = data_font
+    ws2.column_dimensions['A'].width = 8
+    ws2.column_dimensions['B'].width = 20
+    ws2.column_dimensions['C'].width = 20
+
+    # Сохраняем в буфер
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    wb.close()
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=products_import_template.xlsx"}
+    )
+
+
+@router.get("/products/{slug}", response_model=ProductResponse)
+async def get_product_by_slug(slug: str, db: AsyncSession = Depends(get_db)):
+    """Получить один товар по его slug."""
+    result = await db.execute(
+        select(Product).where(Product.slug == slug).options(selectinload(Product.category))
+    )
+    db_product = result.scalar_one_or_none()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+    return db_product
+
+
+@router.get("/categories/{slug}", response_model=CategoryResponse)
+async def get_category_by_slug(slug: str, db: AsyncSession = Depends(get_db)):
+    """Получить одну категорию по её slug."""
+    result = await db.execute(select(Category).where(Category.slug == slug))
+    db_cat = result.scalar_one_or_none()
+    if not db_cat:
+        raise HTTPException(status_code=404, detail="Категория не найдена")
+    return db_cat
+
+
+@router.get("/products/template")
+async def download_excel_template(
+    admin: User = Depends(require_roles(["admin", "manager"]))
+):
+    """
+    Скачать шаблон Excel для массового импорта товаров.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from fastapi.responses import StreamingResponse
+    import io
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Товары"
+
+    # Заголовки
+    headers = [
+        "name", "new_price", "old_price", "category_id", "slug",
+        "material", "color", "description", "image_url", "is_active", "availability_status",
+        "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
+        "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
+        "Подпятники", "Гарантия", "Вариант доставки", "Опоры", "Страна", "Серия"
+    ]
+    header_labels = [
+        "Название товара *", "Новая цена (₸) *", "Старая цена (₸)", "ID Категории *", "Slug (URL)",
+        "Материал", "Цвет", "Описание товара", "Ссылка на фото", "Активен (TRUE/FALSE)", "Наличие (в наличии/под заказ)",
+        "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
+        "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
+        "Подпятники", "Гарантия", "Вариант доставки", "Опоры", "Страна", "Серия"
+    ]
+
+    # Стили заголовков
+    header_fill = PatternFill(start_color="D4AF37", end_color="D4AF37", fill_type="solid")
+    header_font = Font(name="Arial", size=11, bold=True, color="FFFFFF")
+    thin_border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+
+    # Строка 1: Машинные заголовки (для парсинга)
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    # Строка 2: Описание полей
+    desc_font = Font(name="Arial", size=9, italic=True, color="888888")
+    for col_idx, label in enumerate(header_labels, 1):
+        cell = ws.cell(row=2, column=col_idx, value=label)
+        cell.font = desc_font
+        cell.alignment = Alignment(horizontal="center")
+
+    # Примеры данных (строки 3-5)
+    examples = [
+        ["Стул 'Осло' из дуба", 125000, 150000, 1, "oslo-oak-chair", "oak", "natural",
+         "Эргономичный стул из массива дуба.",
+         "https://example.com/photos/oslo-chair.jpg", True, "в наличии",
+         "Длина 120 смхШирина 60 смхВысота 75 см", "сталь", "МДФ 15 мм", "1.5 см", "12 см", "15 кг", "нет", "Дуб Натуральный", "пластиковые", "12 месяцев", "в разобранном виде", "Черный", "Китай", "Рико"]
+    ]
+
+    data_font = Font(name="Arial", size=10)
+    for row_idx, row_data in enumerate(examples, 3):
+        for col_idx, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=value)
+            cell.font = data_font
+            cell.border = thin_border
+            cell.alignment = Alignment(wrap_text=True, vertical="top")
+
+    # Ширина колонок
+    col_widths = [30, 12, 14, 25, 15, 12, 50, 40, 18, 25] + [15]*14
+    for col_idx, width in enumerate(col_widths, 1):
+        ws.column_dimensions[chr(64 + col_idx)].width = width
+
+    # Высота строк с примерами
+    for row_idx in range(3, 6):
+        ws.row_dimensions[row_idx].height = 45
+
+    # Лист 2: Справочник категорий
+    ws2 = wb.create_sheet(title="Категории (справочник)")
+    ws2.cell(row=1, column=1, value="ID").font = header_font
+    ws2.cell(row=1, column=1).fill = header_fill
+    ws2.cell(row=1, column=2, value="Название").font = header_font
+    ws2.cell(row=1, column=2).fill = header_fill
+    ws2.cell(row=1, column=3, value="Slug").font = header_font
+    ws2.cell(row=1, column=3).fill = header_fill
+
+    cat_examples = [
+        [1, "Стулья", "chairs"],
+        [2, "Диваны", "sofas"],
+        [3, "Столы", "tables"],
+        [4, "Шкафы", "cupboards"],
+    ]
+    for row_idx, cat in enumerate(cat_examples, 2):
+        for col_idx, value in enumerate(cat, 1):
+            ws2.cell(row=row_idx, column=col_idx, value=value).font = data_font
+    ws2.column_dimensions['A'].width = 8
+    ws2.column_dimensions['B'].width = 20
+    ws2.column_dimensions['C'].width = 20
+
+    # Сохраняем в буфер
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    wb.close()
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=products_import_template.xlsx"}
+    )
+
+
+@router.get("/products/{slug}", response_model=ProductResponse)
+async def get_product_by_slug(slug: str, db: AsyncSession = Depends(get_db)):
+    """Получить один товар по его slug."""
+    result = await db.execute(
+        select(Product).where(Product.slug == slug).options(selectinload(Product.category))
+    )
+    db_product = result.scalar_one_or_none()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Товар не найден")
+    return db_product
+
+
+@router.get("/categories/{slug}", response_model=CategoryResponse)
+async def get_category_by_slug(slug: str, db: AsyncSession = Depends(get_db)):
+    """Получить одну категорию по её slug."""
+    result = await db.execute(select(Category).where(Category.slug == slug))
+    db_cat = result.scalar_one_or_none()
+    if not db_cat:
+        raise HTTPException(status_code=404, detail="Категория не найдена")
+    return db_cat
+
+
 # =====================================================================
 # ADMIN ENDPOINTS — PRODUCT CRUD
 # =====================================================================
@@ -97,17 +371,15 @@ async def get_products(
 @router.post("/products", response_model=ProductResponse, status_code=201)
 async def create_product(
     product_in: ProductCreate,
-    admin_token: Optional[str] = Header(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_roles(["admin", "manager"]))
 ):
-    """Создать новый товар (только для администратора)."""
-    check_admin(admin_token)
-
+    """Создать новый товар (Админ или Менеджер)."""
     db_product = Product(**product_in.model_dump())
     db.add(db_product)
     await db.commit()
     await db.refresh(db_product)
-    logger.info(f"New product created: {db_product.name} (ID: {db_product.id}, Price: {db_product.new_price} ₸)")
+    logger.info(f"New product created: {db_product.name} (ID: {db_product.id}, Price: {db_product.new_price} ₸) by {admin.username}")
 
     # Подгружаем связанную категорию для ответа
     result = await db.execute(
@@ -120,12 +392,10 @@ async def create_product(
 async def update_product(
     product_id: int,
     product_in: ProductUpdate,
-    admin_token: Optional[str] = Header(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_roles(["admin", "manager"]))
 ):
     """Обновить товар (только для администратора)."""
-    check_admin(admin_token)
-
     result = await db.execute(
         select(Product).where(Product.id == product_id).options(selectinload(Product.category))
     )
@@ -150,12 +420,10 @@ async def update_product(
 @router.delete("/products/{product_id}", status_code=204)
 async def delete_product(
     product_id: int,
-    admin_token: Optional[str] = Header(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_roles(["admin"]))
 ):
     """Удалить товар (только для администратора)."""
-    check_admin(admin_token)
-
     result = await db.execute(select(Product).where(Product.id == product_id))
     db_product = result.scalar_one_or_none()
     if not db_product:
@@ -173,12 +441,10 @@ async def delete_product(
 @router.patch("/products/{product_id}/toggle", response_model=ProductResponse)
 async def toggle_product_status(
     product_id: int,
-    admin_token: Optional[str] = Header(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_roles(["admin", "manager"]))
 ):
     """Быстрое переключение статуса товара (активен/неактивен)."""
-    check_admin(admin_token)
-
     result = await db.execute(
         select(Product).where(Product.id == product_id).options(selectinload(Product.category))
     )
@@ -204,10 +470,9 @@ async def toggle_product_status(
 @router.post("/upload-image")
 async def upload_product_image(
     file: UploadFile = File(...),
-    admin_token: Optional[str] = Header(None),
+    admin: User = Depends(require_roles(["admin", "manager"]))
 ):
     """Загрузить изображение товара. Возвращает URL загруженного файла."""
-    check_admin(admin_token)
 
     # Проверка типа файла
     if file.content_type not in ALLOWED_IMAGE_TYPES:
@@ -269,8 +534,8 @@ def _slugify(text: str) -> str:
 @router.post("/products/bulk-import", response_model=BulkImportResponse)
 async def bulk_import_products(
     file: UploadFile = File(...),
-    admin_token: Optional[str] = Header(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_roles(["admin"]))
 ):
     """
     Массовый импорт товаров из Excel (.xlsx).
@@ -285,8 +550,6 @@ async def bulk_import_products(
     - `image_url` — ссылка на изображение (полный URL или путь /uploads/...).
     - `is_active` — по умолчанию TRUE.
     """
-    check_admin(admin_token)
-
     if not file.filename or not file.filename.endswith((".xlsx", ".xls")):
         raise HTTPException(status_code=400, detail="Файл должен быть в формате .xlsx")
 
@@ -501,138 +764,15 @@ async def bulk_import_products(
 
 
 # =====================================================================
-# ADMIN ENDPOINT — DOWNLOAD EXCEL TEMPLATE
-# =====================================================================
-
-@router.get("/products/template")
-async def download_excel_template(
-    admin_token: Optional[str] = Header(None),
-):
-    """
-    Скачать шаблон Excel для массового импорта товаров.
-    Содержит заголовки и 3 примера заполненных строк.
-    """
-    check_admin(admin_token)
-
-    from openpyxl import load_workbook
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from fastapi.responses import StreamingResponse
-    import io
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Товары"
-
-    # Заголовки
-    headers = [
-        "name", "new_price", "old_price", "category_id", "slug",
-        "material", "color", "description", "image_url", "is_active", "availability_status",
-        "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
-        "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
-        "Подпятники", "Гарантия", "Вариант доставки", "Опоры", "Страна", "Серия"
-    ]
-    header_labels = [
-        "Название товара *", "Новая цена (₸) *", "Старая цена (₸)", "ID Категории *", "Slug (URL)",
-        "Материал", "Цвет", "Описание товара", "Ссылка на фото", "Активен (TRUE/FALSE)", "Наличие (в наличии/под заказ)",
-        "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
-        "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
-        "Подпятники", "Гарантия", "Вариант доставки", "Опоры", "Страна", "Серия"
-    ]
-
-    # Стили заголовков
-    header_fill = PatternFill(start_color="D4AF37", end_color="D4AF37", fill_type="solid")
-    header_font = Font(name="Arial", size=11, bold=True, color="FFFFFF")
-    thin_border = Border(
-        left=Side(style='thin'), right=Side(style='thin'),
-        top=Side(style='thin'), bottom=Side(style='thin')
-    )
-
-    # Строка 1: Машинные заголовки (для парсинга)
-    for col_idx, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_idx, value=header)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = thin_border
-
-    # Строка 2: Описание полей
-    desc_font = Font(name="Arial", size=9, italic=True, color="888888")
-    for col_idx, label in enumerate(header_labels, 1):
-        cell = ws.cell(row=2, column=col_idx, value=label)
-        cell.font = desc_font
-        cell.alignment = Alignment(horizontal="center")
-
-    # Примеры данных (строки 3-5)
-    examples = [
-        ["Стул 'Осло' из дуба", 125000, 150000, 1, "oslo-oak-chair", "oak", "natural",
-         "Эргономичный стул из массива дуба.",
-         "https://example.com/photos/oslo-chair.jpg", True, "в наличии",
-         "Длина 120 смхШирина 60 смхВысота 75 см", "сталь", "МДФ 15 мм", "1.5 см", "12 см", "15 кг", "нет", "Дуб Натуральный", "пластиковые", "12 месяцев", "в разобранном виде", "Черный", "Китай", "Рико"]
-    ]
-
-    data_font = Font(name="Arial", size=10)
-    for row_idx, row_data in enumerate(examples, 3):
-        for col_idx, value in enumerate(row_data, 1):
-            cell = ws.cell(row=row_idx, column=col_idx, value=value)
-            cell.font = data_font
-            cell.border = thin_border
-            cell.alignment = Alignment(wrap_text=True, vertical="top")
-
-    # Ширина колонок
-    col_widths = [30, 12, 14, 25, 15, 12, 50, 40, 18, 25] + [15]*14
-    for col_idx, width in enumerate(col_widths, 1):
-        ws.column_dimensions[chr(64 + col_idx)].width = width
-
-    # Высота строк с примерами
-    for row_idx in range(3, 6):
-        ws.row_dimensions[row_idx].height = 45
-
-    # Лист 2: Справочник категорий
-    ws2 = wb.create_sheet(title="Категории (справочник)")
-    ws2.cell(row=1, column=1, value="ID").font = header_font
-    ws2.cell(row=1, column=1).fill = header_fill
-    ws2.cell(row=1, column=2, value="Название").font = header_font
-    ws2.cell(row=1, column=2).fill = header_fill
-    ws2.cell(row=1, column=3, value="Slug").font = header_font
-    ws2.cell(row=1, column=3).fill = header_fill
-
-    cat_examples = [
-        [1, "Стулья", "chairs"],
-        [2, "Диваны", "sofas"],
-        [3, "Столы", "tables"],
-        [4, "Шкафы", "cupboards"],
-    ]
-    for row_idx, cat in enumerate(cat_examples, 2):
-        for col_idx, value in enumerate(cat, 1):
-            ws2.cell(row=row_idx, column=col_idx, value=value).font = data_font
-    ws2.column_dimensions['A'].width = 8
-    ws2.column_dimensions['B'].width = 20
-    ws2.column_dimensions['C'].width = 20
-
-    # Сохраняем в буфер
-    buffer = io.BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
-    wb.close()
-
-    return StreamingResponse(
-        buffer,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=products_import_template.xlsx"}
-    )
-
-# =====================================================================
 # ADMIN ENDPOINTS — CATEGORY CRUD
 # =====================================================================
 
 @router.post("/categories", response_model=CategoryResponse, status_code=201)
 async def create_category(
     category_in: CategoryCreate,
-    admin_token: Optional[str] = Header(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_roles(["admin"]))
 ):
-    check_admin(admin_token)
     db_cat = Category(**category_in.model_dump())
     db.add(db_cat)
     await db.commit()
@@ -643,10 +783,9 @@ async def create_category(
 async def update_category(
     cat_id: int,
     category_in: CategoryUpdate,
-    admin_token: Optional[str] = Header(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_roles(["admin"]))
 ):
-    check_admin(admin_token)
     result = await db.execute(select(Category).where(Category.id == cat_id))
     db_cat = result.scalar_one_or_none()
     if not db_cat:
@@ -663,10 +802,9 @@ async def update_category(
 @router.delete("/categories/{cat_id}")
 async def delete_category(
     cat_id: int,
-    admin_token: Optional[str] = Header(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(require_roles(["admin"]))
 ):
-    check_admin(admin_token)
     result = await db.execute(select(Category).where(Category.id == cat_id))
     db_cat = result.scalar_one_or_none()
     if not db_cat:

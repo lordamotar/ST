@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { API_URL, uploadProductImage, bulkImportProducts, toggleProductStatus } from "@/lib/api";
 
 interface Category { id: number; name: string; slug: string; }
@@ -26,13 +27,10 @@ const EMPTY_FORM = {
 const BACKEND_URL = "http://127.0.0.1:8000";
 
 export default function AdminProducts() {
-  const [token, setToken] = useState("");
-  const [isLogged, setIsLogged] = useState(false);
-  const [loginError, setLoginError] = useState("");
-
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   // Product modal
   const [modal, setModal] = useState<"add" | "edit" | null>(null);
@@ -85,36 +83,25 @@ export default function AdminProducts() {
       ]);
       if (pRes.ok) setProducts(await pRes.json());
       if (cRes.ok) setCategories(await cRes.json());
+      
+      if (!pRes.ok && pRes.status === 401) {
+          router.push("/login");
+      }
+    } catch (err) {
+        console.error("Fetch failed", err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("admin_token");
-    if (savedToken) {
-      setToken(savedToken);
-      fetch(`${API_URL}/orders/`, { headers: { "admin-token": savedToken } })
-        .then(res => {
-          if (res.ok) {
-            setIsLogged(true);
-            fetchProducts();
-          } else {
-            localStorage.removeItem("admin_token");
-          }
-        });
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+    } else {
+      fetchProducts();
     }
   }, []);
-
-  const handleLoginAlt = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await fetch(`${API_URL}/orders/`, { headers: { "admin-token": token } });
-    if (!res.ok) { setLoginError("Неверный Admin Token."); return; }
-    localStorage.setItem("admin_token", token);
-    setIsLogged(true);
-    setLoginError("");
-    fetchProducts();
-  };
 
   // ───────────────────────────── IMAGE UPLOAD ─────────────────────────────
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,7 +114,7 @@ export default function AdminProducts() {
     // Загрузка на сервер
     setUploading(true);
     try {
-      const url = await uploadProductImage(file, token);
+      const url = await uploadProductImage(file);
       if (url) {
         setForm((prev) => ({ ...prev, image_url: url }));
       } else {
@@ -143,7 +130,7 @@ export default function AdminProducts() {
   const handleToggle = async (productId: number) => {
     setTogglingId(productId);
     try {
-      const updated = await toggleProductStatus(productId, token);
+      const updated = await toggleProductStatus(productId);
       if (updated) {
         setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
       }
@@ -160,7 +147,7 @@ export default function AdminProducts() {
     setImporting(true);
     setImportResult(null);
     try {
-      const result = await bulkImportProducts(file, token);
+      const result = await bulkImportProducts(file);
       setImportResult(result);
       if (result.ok) {
         fetchProducts(); // Обновляем список
@@ -218,7 +205,10 @@ export default function AdminProducts() {
 
       const res = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json", "admin-token": token },
+        headers: { 
+          "Content-Type": "application/json", 
+          "Authorization": `Bearer ${localStorage.getItem("token")}` 
+        },
         body: JSON.stringify(body),
       });
 
@@ -243,7 +233,7 @@ export default function AdminProducts() {
     try {
       const res = await fetch(`${API_URL}/catalog/products/${id}`, {
         method: "DELETE",
-        headers: { "admin-token": token },
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
       });
       if (res.status === 204) {
         setProducts((prev) => prev.filter((p) => p.id !== id));
@@ -257,32 +247,6 @@ export default function AdminProducts() {
 
   // ═══════════════════════════════ RENDER ══════════════════════════════════
 
-  // LOGIN SCREEN
-  if (!isLogged) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[70vh]">
-        <div className="glass p-12 rounded-[3rem] w-full max-w-md text-center">
-          <h1 className="text-3xl font-outfit font-black uppercase mb-8 text-gradient">Управление товарами</h1>
-          <form onSubmit={handleLoginAlt} className="space-y-6">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2 opacity-40">Admin Token</label>
-              <input
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[var(--accent)] text-center text-xl"
-                placeholder="••••••••"
-              />
-            </div>
-            <button className="w-full bg-[var(--foreground)] text-[var(--background)] py-5 rounded-2xl font-black uppercase tracking-wider hover:bg-[var(--accent)] transition-all">
-              Войти
-            </button>
-            {loginError && <p className="text-red-500 text-sm">{loginError}</p>}
-          </form>
-        </div>
-      </div>
-    );
-  }
 
   // MAIN ADMIN PAGE
   return (
@@ -306,9 +270,6 @@ export default function AdminProducts() {
             className="bg-[var(--accent)] text-white px-6 py-3 rounded-2xl font-bold uppercase tracking-wider text-sm hover:opacity-90 transition-all"
           >
             + Добавить товар
-          </button>
-          <button onClick={() => setIsLogged(false)} className="text-xs font-bold uppercase tracking-tighter opacity-40 hover:opacity-100 transition-all px-3">
-            Выйти
           </button>
         </div>
       </div>
@@ -909,10 +870,10 @@ export default function AdminProducts() {
             <button
               onClick={() => {
                 const link = document.createElement("a");
-                link.href = `${API_URL}/catalog/products/template`;
+                const token = localStorage.getItem("token");
                 // Для авторизации добавляем токен через fetch
                 fetch(`${API_URL}/catalog/products/template`, {
-                  headers: { "admin-token": token },
+                  headers: { "Authorization": `Bearer ${token}` },
                 }).then(res => res.blob()).then(blob => {
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");

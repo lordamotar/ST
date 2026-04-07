@@ -26,6 +26,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               Товары
             </Link>
             <Link
+              href="/admin/users"
+              className="text-sm font-bold uppercase tracking-wider opacity-60 hover:opacity-100 transition-all hover:text-[var(--accent)]"
+            >
+              Пользователи
+            </Link>
+            <Link
               href="/admin/categories"
               className="text-sm font-bold uppercase tracking-wider opacity-60 hover:opacity-100 transition-all hover:text-[var(--accent)]"
             >

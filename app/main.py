@@ -10,6 +10,7 @@ from app.core.database import engine, Base
 from app.api.v1.users import router as users_router
 from app.api.v1.catalog import router as catalog_router
 from app.api.v1.orders import router as orders_router
+from app.api.v1.auth import router as auth_router
 
 from loguru import logger
 import sys
@@ -67,7 +68,8 @@ async def root():
     }
 
 # Добавление роутеров API
-app.include_router(users_router, prefix="/api/v1")
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
 app.include_router(catalog_router, prefix="/api/v1/catalog", tags=["catalog"])
 app.include_router(orders_router, prefix="/api/v1/orders", tags=["orders"])
 

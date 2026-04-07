@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { getOrders, API_URL } from "@/lib/api";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
@@ -13,11 +14,12 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 const STATUS_OPTIONS = Object.entries(STATUS_CONFIG).map(([value, { label }]) => ({ value, label }));
 
 export default function AdminOrders() {
-  const [token, setToken] = useState("");
   const [orders, setOrders] = useState<any[]>([]);
-  const [isLogged, setIsLogged] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState<number | null>(null);
+  const router = useRouter();
+  
   // Pagination
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -38,32 +40,23 @@ export default function AdminOrders() {
   });
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("admin_token");
-    if (savedToken) {
-      setToken(savedToken);
-      getOrders(savedToken).then(data => {
-        if (data) {
-          setOrders(data);
-          setIsLogged(true);
-        } else {
-          localStorage.removeItem("admin_token");
-        }
-      });
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
     }
+    
+    getOrders().then(data => {
+      if (data) {
+        setOrders(data);
+      } else {
+        localStorage.removeItem("token");
+        router.push("/login");
+      }
+    }).catch(() => {
+        router.push("/login");
+    }).finally(() => setLoading(false));
   }, []);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const data = await getOrders(token);
-    if (data) {
-      localStorage.setItem("admin_token", token);
-      setOrders(data);
-      setIsLogged(true);
-      setError("");
-    } else {
-      setError("Неверный Admin Token. Проверьте JWT_SECRET в .env бэкенда.");
-    }
-  };
 
   const handleStatusChange = async (orderId: number, newStatus: string) => {
     setUpdating(orderId);
@@ -72,7 +65,7 @@ export default function AdminOrders() {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "admin-token": token,
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({ status: newStatus }),
       });
@@ -85,31 +78,7 @@ export default function AdminOrders() {
     }
   };
 
-  if (!isLogged) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[70vh]">
-        <div className="glass p-12 rounded-[3rem] w-full max-w-md text-center">
-          <h1 className="text-3xl font-outfit font-black uppercase mb-8 text-gradient">Админ-панель</h1>
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest mb-2 opacity-40">Введите Admin Token</label>
-              <input
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[var(--accent)] text-center text-xl"
-                placeholder="••••••••"
-              />
-            </div>
-            <button className="w-full bg-[var(--foreground)] text-[var(--background)] py-5 rounded-2xl font-black uppercase tracking-wider hover:bg-[var(--accent)] transition-all">
-              Войти
-            </button>
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-          </form>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-12 text-center opacity-40 uppercase tracking-[0.3em] text-xs font-black">Загрузка данных...</div>;
 
   return (
     <div className="max-w-7xl mx-auto px-8 py-20 animate-in fade-in duration-500">
@@ -118,9 +87,6 @@ export default function AdminOrders() {
           <h1 className="text-5xl font-outfit font-black uppercase text-gradient">Входящие заявки</h1>
           <p className="opacity-40 font-medium mt-1">Всего заявок: {orders.length}</p>
         </div>
-        <button onClick={() => setIsLogged(false)} className="text-xs font-bold uppercase tracking-tighter opacity-40 hover:opacity-100 transition-all">
-          Выйти
-        </button>
       </div>
 
       <div className="flex gap-3 mb-4 flex-wrap">

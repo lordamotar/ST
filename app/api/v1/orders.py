@@ -1,21 +1,27 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 from typing import List
 from app.core.database import get_db
 from app.models.order import Order
+from app.models.user import User
 from app.schemas.order import OrderCreate, OrderResponse, OrderUpdateStatus
-from app.core.config import settings
+from app.core.dependencies import get_current_user, check_admin
 from loguru import logger
 
 router = APIRouter()
 
 @router.post("/", response_model=OrderResponse)
 async def create_order(order_in: OrderCreate, db: AsyncSession = Depends(get_db)):
+    # Нормализация телефона покупателя
+    phone_digits = "".join(filter(str.isdigit, order_in.customer_phone))
+    if phone_digits.startswith("8"):
+        phone_digits = "7" + phone_digits[1:]
+    
     db_order = Order(
         customer_name=order_in.customer_name,
-        customer_phone=order_in.customer_phone,
+        customer_phone=phone_digits,
         product_id=order_in.product_id,
         message=order_in.message,
         status="new"
@@ -34,12 +40,10 @@ async def create_order(order_in: OrderCreate, db: AsyncSession = Depends(get_db)
 
 @router.get("/", response_model=List[OrderResponse])
 async def list_orders(
-    admin_token: str = Header(None), 
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db), 
+    admin: User = Depends(check_admin)
 ):
-    if admin_token != settings.JWT_SECRET:
-        logger.warning("Failed admin access attempt to list orders")
-        raise HTTPException(status_code=403, detail="Forbidden: Invalid Admin Token")
+    """ Список заказов (только для админа) """
     result = await db.execute(select(Order).options(selectinload(Order.product)).order_by(Order.created_at.desc()))
     return result.scalars().all()
 
@@ -47,13 +51,10 @@ async def list_orders(
 async def update_order_status(
     order_id: int,
     status_update: OrderUpdateStatus,
-    admin_token: str = Header(None),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(check_admin)
 ):
-    if admin_token != settings.JWT_SECRET:
-        logger.warning(f"Failed admin access attempt to update status for order {order_id}")
-        raise HTTPException(status_code=403, detail="Forbidden: Invalid Admin Token")
-    
+    """ Обновление статуса заказа (только для админа) """
     # 1. Поиск заказа
     result = await db.execute(select(Order).options(selectinload(Order.product)).where(Order.id == order_id))
     db_order = result.scalar_one_or_none()
