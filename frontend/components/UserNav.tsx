@@ -37,6 +37,12 @@ export default function UserNav() {
       >
         Панель управления
       </Link>
+      <Link 
+        href="/admin/settings" 
+        className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-[var(--accent)] transition-colors"
+      >
+        Настройки
+      </Link>
       <button 
         onClick={handleLogout}
         className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-red-500 transition-all"

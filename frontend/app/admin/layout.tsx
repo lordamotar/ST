@@ -37,6 +37,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               Категории
             </Link>
+            <Link
+              href="/admin/settings"
+              className="text-sm font-bold uppercase tracking-wider opacity-60 hover:opacity-100 transition-all hover:text-[var(--accent)]"
+            >
+              Настройки
+            </Link>
           </nav>
           <div className="ml-auto">
             <Link href="/" className="text-xs font-bold uppercase opacity-40 hover:opacity-80 transition-all">
