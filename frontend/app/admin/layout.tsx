@@ -14,6 +14,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <span className="font-outfit font-black text-sm uppercase tracking-widest opacity-40">Admin</span>
           <nav className="flex gap-6">
             <Link
+              href="/admin/dashboard"
+              className="text-sm font-bold uppercase tracking-wider opacity-60 hover:opacity-100 transition-all hover:text-[var(--accent)]"
+            >
+              Дашборд
+            </Link>
+            <Link
               href="/admin/orders"
               className="text-sm font-bold uppercase tracking-wider opacity-60 hover:opacity-100 transition-all hover:text-[var(--accent)]"
             >

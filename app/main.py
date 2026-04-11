@@ -13,6 +13,7 @@ from app.api.v1.orders import router as orders_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.slider import router as slider_router
+from app.api.v1.admin import router as admin_router
 
 from loguru import logger
 import sys
@@ -52,7 +53,7 @@ app = FastAPI(
 # --- Настройка CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://192.168.1.104:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -77,4 +78,5 @@ app.include_router(catalog_router, prefix="/api/v1/catalog", tags=["catalog"])
 app.include_router(orders_router, prefix="/api/v1/orders", tags=["orders"])
 app.include_router(settings_router, prefix="/api/v1/settings", tags=["settings"])
 app.include_router(slider_router, prefix="/api/v1/slider", tags=["slider"])
+app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 
