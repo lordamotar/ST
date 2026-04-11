@@ -12,6 +12,7 @@ from app.api.v1.catalog import router as catalog_router
 from app.api.v1.orders import router as orders_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.settings import router as settings_router
+from app.api.v1.slider import router as slider_router
 
 from loguru import logger
 import sys
@@ -75,4 +76,5 @@ app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
 app.include_router(catalog_router, prefix="/api/v1/catalog", tags=["catalog"])
 app.include_router(orders_router, prefix="/api/v1/orders", tags=["orders"])
 app.include_router(settings_router, prefix="/api/v1/settings", tags=["settings"])
+app.include_router(slider_router, prefix="/api/v1/slider", tags=["slider"])
 

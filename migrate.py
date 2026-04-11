@@ -30,6 +30,8 @@ MIGRATIONS = [
     "ALTER TABLE products ADD COLUMN IF NOT EXISTS is_bestseller BOOLEAN DEFAULT FALSE",
     # Создание таблицы настроек
     "CREATE TABLE IF NOT EXISTS site_settings (id SERIAL PRIMARY KEY, key VARCHAR(50) UNIQUE NOT NULL, value TEXT)",
+    # Создание таблицы слайдов
+    "CREATE TABLE IF NOT EXISTS slides (id SERIAL PRIMARY KEY, title VARCHAR(255), description TEXT, image_url VARCHAR(500), start_date TIMESTAMP, end_date TIMESTAMP, show_timer BOOLEAN DEFAULT FALSE, is_active BOOLEAN DEFAULT TRUE, \"order\" INTEGER DEFAULT 0)",
 ]
 
 async def main():

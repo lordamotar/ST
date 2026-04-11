@@ -1,21 +1,30 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getCategories, getProducts, getAllSettings } from "@/lib/api";
+import { getCategories, getProducts, getAllSettings, getSlides } from "@/lib/api";
 import SearchInput from "@/components/SearchInput";
 import ProductCard from "@/components/ProductCard";
 import AnimatedSection from "@/components/AnimatedSection";
 import { HeroText, FadeIn, Counter } from "@/components/HeroAnimations";
+import HeroSlider from "@/components/HeroSlider";
 
 export default async function Home() {
   const dbCategories = await getCategories();
   const bestsellers = await getProducts({ is_bestseller: true });
-  const settings = await getAllSettings();
+  const siteSettings = (await getAllSettings()) || [];
+  const allSlides = await getSlides();
   
   // Helper to get setting value
   const getS = (key: string, fallback: string) => {
-    const s = settings.find((item: any) => item.key === key);
+    const s = siteSettings.find((item: any) => item.key === key);
     return s && s.value ? s.value : fallback;
   };
+
+  const now = new Date().getTime();
+  const activeSlides = allSlides.filter((s: any) => {
+    const start = s.start_date ? new Date(s.start_date).getTime() : 0;
+    const end = s.end_date ? new Date(s.end_date).getTime() : Infinity;
+    return s.is_active && now >= start && now <= end;
+  });
 
   const categories = dbCategories.map((cat: any) => {
     const assets: { [key: string]: string } = {
@@ -32,30 +41,15 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col items-center overflow-x-hidden">
-      {/* ─── HERO SECTION ─── */}
-      <section className="relative w-full min-h-[85vh] md:h-[95vh] flex flex-col justify-center items-center text-center px-4 py-20 overflow-hidden">
-        <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_50%_-20%,_var(--accent)_0%,_transparent_50%)] opacity-20"></div>
-        <div className="absolute inset-0 z-0 pattern-bg opacity-[0.03]"></div>
-        
-        <HeroText>
-          <span className="text-[var(--accent)] font-black uppercase tracking-[0.3em] text-[10px] sm:text-xs mb-6 block">
-            {getS("home_hero_badge", "Premium Furniture 2026")}
-          </span>
-          <h1 className="text-5xl sm:text-6xl md:text-[6rem] lg:text-[10rem] font-outfit uppercase font-black tracking-tighter leading-[0.9] md:leading-[0.8] mb-8 px-4" 
-              dangerouslySetInnerHTML={{ __html: getS("home_hero_title", "Эстетика <br /> <span class='text-gradient underline decoration-white/5 underline-offset-[15px]'>Вашего дома</span>") }}
-          />
-          <p className="text-sm md:text-xl max-w-2xl mx-auto opacity-50 mb-12 font-medium leading-relaxed px-6"
-             dangerouslySetInnerHTML={{ __html: getS("home_hero_subtitle", "Мы объединили вековые традиции мебельного мастерства <br class='hidden md:block'/> с технологиями будущего для создания вашего идеального пространства.") }}
-          />
-        </HeroText>
-        
-        <FadeIn delay={0.8}>
-          <div className="w-full max-w-xl px-6">
-            <SearchInput />
-          </div>
-        </FadeIn>
-        
-      </section>
+      {/* ─── HERO SECTION (SLIDER) ─── */}
+      <HeroSlider 
+        slides={activeSlides} 
+        defaultSettings={{
+          badge: getS("home_hero_badge", "Premium Furniture 2026"),
+          title: getS("home_hero_title", "Эстетика <br /> <span class='text-gradient underline decoration-white/5 underline-offset-[15px]'>Вашего дома</span>"),
+          subtitle: getS("home_hero_subtitle", "Мы объединили вековые традиции мебельного мастерства <br class='hidden md:block'/> с технологиями будущего для создания вашего идеального пространства.")
+        }}
+      />
 
       {/* ─── TRUST INDICATORS (STATIC GRID WITH ANIMATION) ─── */}
       <section className="w-full border-y border-white/5 bg-white/[0.01] py-12 md:py-20">
