@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getCategories, getProducts, getAllSettings, getSlides } from "@/lib/api";
+import { getCategories, getProducts, getAllSettings, getSlides, getFAQs } from "@/lib/api";
 import SearchInput from "@/components/SearchInput";
 import ProductCard from "@/components/ProductCard";
 import AnimatedSection from "@/components/AnimatedSection";
@@ -12,6 +12,7 @@ export default async function Home() {
   const bestsellers = await getProducts({ is_bestseller: true });
   const siteSettings = (await getAllSettings()) || [];
   const allSlides = await getSlides();
+  const allFaqs = await getFAQs();
   
   // Helper to get setting value
   const getS = (key: string, fallback: string) => {
@@ -25,6 +26,8 @@ export default async function Home() {
     const end = s.end_date ? new Date(s.end_date).getTime() : Infinity;
     return s.is_active && now >= start && now <= end;
   });
+
+  const activeFaqs = allFaqs.filter((f: any) => f.is_active);
 
   const categories = dbCategories.map((cat: any) => {
     const assets: { [key: string]: string } = {
@@ -172,29 +175,58 @@ export default async function Home() {
         </AnimatedSection>
       </section>
 
-      {/* ─── CALL TO ACTION ─── */}
-      <section className="w-full px-4 md:px-8 py-20 mb-20 flex justify-center">
-        <AnimatedSection distance={30}>
-          <div className="w-full max-w-7xl relative rounded-[3rem] md:rounded-[5rem] overflow-hidden bg-[var(--foreground)] min-h-[500px] md:min-h-[600px] flex flex-col justify-center items-center text-center text-[var(--background)] p-8 md:p-12">
-            <div className="absolute inset-0 opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
-            <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_0%,_var(--accent)_0%,_transparent_60%)] opacity-10"></div>
-            
-            <h2 className="text-3xl sm:text-5xl md:text-8xl font-outfit font-black uppercase mb-8 z-10 leading-[1] md:leading-[0.85] tracking-tighter text-black"
-                dangerouslySetInnerHTML={{ __html: getS("home_cta_title", "Создайте проект <br /> своего пространства") }}
-            />
-            <p className="max-w-xl opacity-60 text-sm md:text-lg mb-12 z-10 leading-relaxed font-semibold px-4 text-black"
-               dangerouslySetInnerHTML={{ __html: getS("home_cta_subtitle", "Оставьте заявку на бесплатную консультацию нашего дизайнера <br class='hidden md:block'/> или подпишитесь на закрытые предложения.") }}
-            />
-            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-xl z-10 glass p-2 rounded-[2rem] sm:rounded-full border-white/5 bg-white/[0.05]">
-              <input 
-                type="email" 
-                placeholder="Ваш email" 
-                className="flex-1 bg-transparent px-8 md:px-10 py-4 md:py-5 outline-none text-white font-medium placeholder:text-white/20 text-sm md:text-base"
-              />
-              <button className="bg-[var(--accent)] text-black px-10 md:px-12 py-4 md:py-5 rounded-full font-black uppercase tracking-widest text-[10px] md:text-xs hover:bg-white hover:scale-[0.98] transition-all">Подписаться</button>
+      {/* ─── FAQ / INFO SECTION ─── */}
+      <section className="w-full bg-[#080808] border-t border-white/5 py-32 md:py-48 relative overflow-hidden">
+        {/* Декоративное свечение */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-[var(--accent)]/20 to-transparent"></div>
+        
+        <div className="max-w-4xl mx-auto px-6 relative z-10">
+          <AnimatedSection>
+            <div className="text-center mb-16 md:mb-24">
+              <span className="text-[var(--accent)] font-black uppercase tracking-[0.4em] text-[9px] mb-4 block">Инфо-центр</span>
+              <h2 className="text-4xl md:text-7xl font-outfit font-black uppercase tracking-tighter mb-8 italic">Остались <br className="md:hidden"/> вопросы?</h2>
+              <div className="w-16 h-1 bg-[var(--accent)] mx-auto opacity-50"></div>
             </div>
-          </div>
-        </AnimatedSection>
+          </AnimatedSection>
+
+          {activeFaqs.length > 0 ? (
+            <div className="space-y-4">
+              {activeFaqs.map((faq, i) => (
+                <AnimatedSection key={faq.id} delay={i * 0.1}>
+                  <details className="group glass rounded-3xl border border-white/5 overflow-hidden transition-all duration-500 open:border-[var(--accent)]/30">
+                    <summary className="flex items-center justify-between p-7 md:p-8 cursor-pointer list-none">
+                      <h3 className="text-xs md:text-sm font-black uppercase tracking-widest group-open:text-[var(--accent)] transition-colors">{faq.question}</h3>
+                      <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-open:rotate-180 transition-transform duration-500">
+                        <svg width="10" height="6" viewBox="0 0 10 6" fill="none" className="stroke-[var(--accent)] group-open:stroke-[var(--accent)]" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1 1L5 5L9 1" />
+                        </svg>
+                      </div>
+                    </summary>
+                    <div className="px-8 pb-8 animate-in fade-in slide-in-from-top-2 duration-500">
+                      <p className="text-white/40 text-sm md:text-base leading-relaxed font-medium border-t border-white/5 pt-6">
+                        {faq.answer}
+                      </p>
+                    </div>
+                  </details>
+                </AnimatedSection>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10 opacity-30 italic text-sm">Вопросы и ответы скоро появятся...</div>
+          )}
+
+          <AnimatedSection delay={0.5}>
+            <div className="mt-16 glass rounded-[2.5rem] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 border-dashed border-white/10">
+              <div>
+                <h4 className="text-lg font-black uppercase mb-2">Остались вопросы?</h4>
+                <p className="text-xs opacity-40 font-medium">Наши менеджеры помогут с выбором и проконсультируют по доставке.</p>
+              </div>
+              <Link href={`https://wa.me/${getS("whatsapp_number", "77753424424")}`} className="bg-[var(--accent)] text-black px-10 py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-transform whitespace-nowrap">
+                Написать в WhatsApp
+              </Link>
+            </div>
+          </AnimatedSection>
+        </div>
       </section>
     </div>
   );

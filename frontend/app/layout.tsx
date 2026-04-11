@@ -45,15 +45,15 @@ export default async function RootLayout({
     <html lang="ru" className={`${inter.variable} ${outfit.variable}`}>
       <body className="antialiased min-h-screen flex flex-col">
         <header className="fixed top-0 w-full z-50 nav-blur border-b border-white/10 h-20 flex items-center px-8 justify-between">
-          <Link href="/" className="flex items-center gap-2 group">
+          <a href="/" className="flex items-center gap-2 group">
             <div className="w-10 h-10 bg-[var(--accent)] rounded-xl flex items-center justify-center font-black text-[var(--background)] group-hover:rotate-12 transition-transform shadow-lg shadow-[var(--accent)]/20">S</div>
             <div className="text-2xl font-bold tracking-tighter font-outfit uppercase">
               Stoly<span className="text-[var(--accent)]">-Sklad</span>
             </div>
-          </Link>
+          </a>
           
           <nav className="hidden md:flex gap-12 font-black uppercase text-[10px] tracking-[0.2em] opacity-40">
-            <Link href="/" className="hover:text-[var(--accent)] hover:opacity-100 transition-all">Главная</Link>
+            <a href="/" className="hover:text-[var(--accent)] hover:opacity-100 transition-all">Главная</a>
             <Link href="/catalog" className="hover:text-[var(--accent)] hover:opacity-100 transition-all">Каталог</Link>
             {categories.map((cat: any) => (
               <Link key={cat.id} href={`/catalog/${cat.slug}`} className="hover:text-[var(--accent)] hover:opacity-100 transition-all">
@@ -67,11 +67,6 @@ export default async function RootLayout({
               <UserNav />
             </div>
             
-            <Link href="/contacts" className="relative group bg-[var(--foreground)] text-[var(--background)] px-6 sm:px-10 py-3.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all overflow-hidden hidden sm:block">
-               <span className="relative z-10">Спецзаказ</span>
-               <div className="absolute inset-0 bg-[var(--accent)] translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
-            </Link>
-
             <MobileMenu categories={categories} />
           </div>
         </header>

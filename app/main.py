@@ -37,6 +37,7 @@ async def lifespan(app: FastAPI):
         from app.models.user import User 
         from app.models.order import Order
         from app.models.settings import SiteSettings
+        from app.models.faq import FAQ
         await conn.run_sync(Base.metadata.create_all)
     
     logger.info(f"Starting {settings.PROJECT_NAME} v{settings.VERSION}...")
@@ -71,6 +72,8 @@ async def root():
         "docs": "/docs"
     }
 
+from app.api.v1.faq import router as faq_router
+
 # Добавление роутеров API
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(users_router, prefix="/api/v1/users", tags=["users"])
@@ -78,5 +81,6 @@ app.include_router(catalog_router, prefix="/api/v1/catalog", tags=["catalog"])
 app.include_router(orders_router, prefix="/api/v1/orders", tags=["orders"])
 app.include_router(settings_router, prefix="/api/v1/settings", tags=["settings"])
 app.include_router(slider_router, prefix="/api/v1/slider", tags=["slider"])
+app.include_router(faq_router, prefix="/api/v1/faq", tags=["faq"])
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 
