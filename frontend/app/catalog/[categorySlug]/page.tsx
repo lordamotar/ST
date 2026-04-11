@@ -119,6 +119,40 @@ export default async function CategoryPage({ params, searchParams }: Props) {
           <p className="text-2xl opacity-40 font-bold uppercase">В этой категории пока нет товаров</p>
         </div>
       )}
+
+      {/* ─── Programmatic SEO Internal Linking ─── */}
+      <div className="mt-40 pt-20 border-t border-white/5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-20">
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--accent)] mb-10">Коллекции по материалам</h3>
+            <div className="flex flex-wrap gap-3">
+              {["oak", "pine", "metal", "glass", "velvet", "leather", "mdf", "ash"].map(m => (
+                <Link 
+                  key={m} 
+                  href={`/catalog/${categorySlug}/material/${m}`}
+                  className="glass px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-[var(--accent)] hover:text-black transition-all"
+                >
+                  {category.name} из {m.toLowerCase() === "velvet" ? "велюра" : m.toLowerCase() === "leather" ? "кожи" : m.toLowerCase() === "oak" ? "дуба" : m}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-xs font-black uppercase tracking-[0.3em] text-[var(--accent)] mb-10">Популярные оттенки</h3>
+            <div className="flex flex-wrap gap-3">
+              {["natural", "white", "black", "grey", "beige", "brown", "gold"].map(c => (
+                <Link 
+                  key={c} 
+                  href={`/catalog/${categorySlug}/color/${c}`}
+                  className="glass px-6 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-[var(--accent)] hover:text-black transition-all"
+                >
+                  {c.charAt(0).toUpperCase() + c.slice(1)} {category.name.toLowerCase()}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

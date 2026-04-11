@@ -26,6 +26,8 @@ MIGRATIONS = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS hashed_password VARCHAR(255)",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'client'",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255) UNIQUE",
+    # Маркер бесцеллера
+    "ALTER TABLE products ADD COLUMN IF NOT EXISTS is_bestseller BOOLEAN DEFAULT FALSE",
     # Создание таблицы настроек
     "CREATE TABLE IF NOT EXISTS site_settings (id SERIAL PRIMARY KEY, key VARCHAR(50) UNIQUE NOT NULL, value TEXT)",
 ]
@@ -41,9 +43,9 @@ async def main():
                 elif "CREATE TABLE" in sql: desc = f"Create table: {sql.split('CREATE TABLE IF NOT EXISTS ')[1].split()[0]}"
                 elif "ADD COLUMN" in sql: desc = f"Add column: {sql.split('ADD COLUMN IF NOT EXISTS ')[1].split()[0]}"
                 else: desc = "Execute custom SQL"
-                print(f"  ✅  {desc}")
+                print(f"  [OK]  {desc}")
             except Exception as e:
-                print(f"  ⚠️  Error running SQL: {sql[:50]}... -> {e}")
+                print(f"  [ERROR]  Error running SQL: {sql[:50]}... -> {e}")
     print("\nМиграция завершена!")
 
 if __name__ == "__main__":

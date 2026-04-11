@@ -28,6 +28,7 @@ class Product(Base):
     category: Mapped["Category"] = relationship(back_populates="products")
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_bestseller: Mapped[bool] = mapped_column(Boolean, default=False)
     availability_status: Mapped[str] = mapped_column(String(50), default="in_stock")
     
     # Изображение товара

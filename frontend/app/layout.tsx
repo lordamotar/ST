@@ -19,37 +19,60 @@ export const metadata: Metadata = {
   keywords: ["мебель", "столы", "стулья", "лофт мебель", "купить мебель Москва"],
 };
 
+import { getCategories, getAllSettings } from "@/lib/api";
 import UserNav from "@/components/UserNav";
+import MobileMenu from "@/components/MobileMenu";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const categories = await getCategories();
+  const settings = await getAllSettings();
+  const getS = (key: string, fallback: string) => {
+    const s = settings.find((item: any) => item.key === key);
+    return s && s.value ? s.value : fallback;
+  };
+  
+  const socialLinks = [
+    { name: "Instagram", url: getS("social_instagram", "#"), icon: "I" },
+    { name: "WhatsApp", url: `https://wa.me/${getS("whatsapp_number", "77753424424")}`, icon: "W" },
+    { name: "Telegram", url: getS("social_telegram", "#"), icon: "T" }
+  ];
+
   return (
     <html lang="ru" className={`${inter.variable} ${outfit.variable}`}>
       <body className="antialiased min-h-screen flex flex-col">
         <header className="fixed top-0 w-full z-50 nav-blur border-b border-white/10 h-20 flex items-center px-8 justify-between">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 bg-[var(--accent)] rounded-xl flex items-center justify-center font-black text-[var(--background)] group-hover:rotate-12 transition-transform">S</div>
+            <div className="w-10 h-10 bg-[var(--accent)] rounded-xl flex items-center justify-center font-black text-[var(--background)] group-hover:rotate-12 transition-transform shadow-lg shadow-[var(--accent)]/20">S</div>
             <div className="text-2xl font-bold tracking-tighter font-outfit uppercase">
               Stoly<span className="text-[var(--accent)]">-Sklad</span>
             </div>
           </Link>
           
-          <nav className="hidden md:flex gap-10 font-medium uppercase text-xs tracking-widest opacity-70">
-            <Link href="/" className="hover:text-[var(--accent)] transition-colors">Главная</Link>
-            <Link href="/catalog" className="hover:text-[var(--accent)] transition-colors">Каталог</Link>
-            <Link href="/catalog/tables" className="hover:text-[var(--accent)] transition-colors">Столы <span className="opacity-30">(Столдар)</span></Link>
-            <Link href="/catalog/chairs" className="hover:text-[var(--accent)] transition-colors">Стулья <span className="opacity-30">(Орындықтар)</span></Link>
+          <nav className="hidden md:flex gap-12 font-black uppercase text-[10px] tracking-[0.2em] opacity-40">
+            <Link href="/" className="hover:text-[var(--accent)] hover:opacity-100 transition-all">Главная</Link>
+            <Link href="/catalog" className="hover:text-[var(--accent)] hover:opacity-100 transition-all">Каталог</Link>
+            {categories.map((cat: any) => (
+              <Link key={cat.id} href={`/catalog/${cat.slug}`} className="hover:text-[var(--accent)] hover:opacity-100 transition-all">
+                {cat.name}
+              </Link>
+            ))}
           </nav>
 
-          <div className="flex items-center gap-8">
-            <UserNav />
-            <button className="hidden sm:block text-xs font-bold uppercase tracking-wider opacity-40 hover:opacity-100 transition-all">Ru</button>
-            <Link href="/contacts" className="bg-[var(--foreground)] text-[var(--background)] px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest hover:bg-[var(--accent)] transition-all hover-scale">
-              Спецзаказ
+          <div className="flex items-center gap-6 sm:gap-10">
+            <div className="hidden sm:block">
+              <UserNav />
+            </div>
+            
+            <Link href="/contacts" className="relative group bg-[var(--foreground)] text-[var(--background)] px-6 sm:px-10 py-3.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all overflow-hidden hidden sm:block">
+               <span className="relative z-10">Спецзаказ</span>
+               <div className="absolute inset-0 bg-[var(--accent)] translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
             </Link>
+
+            <MobileMenu categories={categories} />
           </div>
         </header>
 
@@ -69,10 +92,10 @@ export default function RootLayout({
                   Мы создаем не просто мебель, а среду для жизни. Каждое изделие — это баланс эстетики и функциональности.
                 </p>
                 <div className="flex gap-4">
-                  {[1,2,3].map(i => (
-                    <div key={i} className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:border-[var(--accent)] hover:text-[var(--accent)] cursor-pointer transition-all">
-                      <div className="w-4 h-4 bg-current rounded-sm opacity-50"></div>
-                    </div>
+                  {socialLinks.map(link => (
+                    <a key={link.name} href={link.url} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:border-[var(--accent)] hover:text-[var(--accent)] cursor-pointer transition-all font-bold text-xs">
+                      {link.icon}
+                    </a>
                   ))}
                 </div>
               </div>
@@ -80,10 +103,14 @@ export default function RootLayout({
               <div>
                 <h4 className="text-xs font-black uppercase tracking-widest mb-8 text-[var(--accent)]">Каталог</h4>
                 <ul className="space-y-4 text-sm text-white/50">
-                  <li><Link href="/catalog/tables" className="hover:text-white transition-colors">Обеденные столы</Link></li>
-                  <li><Link href="/catalog/tables?type=transformer" className="hover:text-white transition-colors">Столы-трансформеры</Link></li>
-                  <li><Link href="/catalog/chairs" className="hover:text-white transition-colors">Дизайнерские стулья</Link></li>
-                  <li><Link href="/catalog/sets" className="hover:text-white transition-colors">Обеденные комплекты</Link></li>
+                  <li><Link href="/catalog" className="hover:text-white transition-colors">Весь ассортимент</Link></li>
+                  {categories.map((cat: any) => (
+                    <li key={cat.id}>
+                      <Link href={`/catalog/${cat.slug}`} className="hover:text-white transition-colors">
+                        {cat.name}
+                      </Link>
+                    </li>
+                  ))}
                 </ul>
               </div>
 
@@ -100,8 +127,8 @@ export default function RootLayout({
               <div>
                 <h4 className="text-xs font-black uppercase tracking-widest mb-8 text-[var(--accent)]">Шоурум</h4>
                 <div className="text-white/50 text-sm space-y-4">
-                  <p>Москва, ул. Дизайнеров, 15<br/>Пн-Вс: 10:00 — 21:00</p>
-                  <p className="text-white font-bold text-lg">+7 (495) 000-00-00</p>
+                  <p>г. Семей<br/>Пн-Вс: 10:00 — 21:00</p>
+                  <p className="text-white font-bold text-lg">+{getS("whatsapp_number", "77753424424")}</p>
                   <p className="text-[var(--accent)] underline cursor-pointer">Заказать звонок</p>
                 </div>
               </div>

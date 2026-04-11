@@ -8,8 +8,11 @@ interface Category { id: number; name: string; slug: string; }
 interface Product {
   id: number; name: string; slug: string; new_price: number; old_price?: number;
   material?: string; color?: string; description?: string;
+  id: number; name: string; slug: string; new_price: number; old_price?: number;
+  material?: string; color?: string; description?: string;
   image_url?: string; characteristics?: Record<string, string>;
   category_id: number; is_active: boolean; availability_status: string;
+  is_bestseller: boolean;
   dimensions?: string; legs_material?: string; tabletop_material?: string; tabletop_thickness?: string;
   floor_clearance?: string; max_load?: string; legs_adjustment?: string; tabletop_color?: string;
   footings?: string; warranty?: string; delivery_format?: string; supports?: string; country?: string; series?: string;
@@ -17,7 +20,7 @@ interface Product {
 }
 
 const EMPTY_FORM = { 
-  name: "", slug: "", new_price: 0, old_price: 0, material: "", color: "", description: "", category_id: 1, is_active: true, availability_status: "in_stock", image_url: "", 
+  name: "", slug: "", new_price: 0, old_price: 0, material: "", color: "", description: "", category_id: 1, is_active: true, is_bestseller: false, availability_status: "in_stock", image_url: "", 
   characteristics: [] as {k: string; v: string}[],
   dimensions: "", legs_material: "", tabletop_material: "", tabletop_thickness: "",
   floor_clearance: "", max_load: "", legs_adjustment: "", tabletop_color: "",
@@ -171,7 +174,7 @@ export default function AdminProducts() {
       name: p.name, slug: p.slug, new_price: p.new_price, old_price: p.old_price ?? 0,
       material: p.material ?? "", color: p.color ?? "",
       description: p.description ?? "", category_id: p.category_id,
-      is_active: p.is_active, availability_status: p.availability_status || "in_stock", image_url: p.image_url ?? "",
+      is_active: p.is_active, is_bestseller: p.is_bestseller || false, availability_status: p.availability_status || "in_stock", image_url: p.image_url ?? "",
       dimensions: p.dimensions ?? "", legs_material: p.legs_material ?? "", tabletop_material: p.tabletop_material ?? "",
       tabletop_thickness: p.tabletop_thickness ?? "", floor_clearance: p.floor_clearance ?? "", max_load: p.max_load ?? "",
       legs_adjustment: p.legs_adjustment ?? "", tabletop_color: p.tabletop_color ?? "", footings: p.footings ?? "",
@@ -456,9 +459,14 @@ export default function AdminProducts() {
                     <td className="px-4 py-3 min-w-[160px] max-w-[200px]">
                       <p className="font-bold text-xs leading-tight truncate" title={p.name}>{p.name}</p>
                       <p className="text-[10px] opacity-30 font-mono truncate">{p.slug}</p>
-                      <span className={`mt-1 inline-block text-[9px] font-black px-1.5 py-0.5 rounded-full ${
-                        p.is_active ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
-                      }`}>{p.is_active ? "Активен" : "Скрыт"}</span>
+                      <div className="flex gap-1.5 mt-1">
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-full ${
+                          p.is_active ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
+                        }`}>{p.is_active ? "Активен" : "Скрыт"}</span>
+                        {p.is_bestseller && (
+                          <span className="bg-[var(--accent)]/10 text-[var(--accent)] text-[9px] font-black px-1.5 py-0.5 rounded-full">★ Best</span>
+                        )}
+                      </div>
                     </td>
                     {/* Категория */}
                     <td className="px-4 py-3 whitespace-nowrap text-xs opacity-80">{p.category?.name ?? `#${p.category_id}`}</td>
@@ -798,23 +806,36 @@ export default function AdminProducts() {
                       onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
                       className="w-5 h-5 accent-[var(--accent)]"
                     />
-                    <span className="font-bold text-sm">Товар активен (виден в каталоге)</span>
+                    <span className="text-sm font-bold uppercase tracking-wider">Активен (Виден на сайте)</span>
                   </label>
                 </div>
 
-                {/* Статус наличия */}
-                <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                  <label className="block text-xs font-bold uppercase opacity-60 mb-2">Наличие</label>
-                  <select
-                    value={form.availability_status}
-                    onChange={(e) => setForm({ ...form, availability_status: e.target.value })}
-                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[var(--accent)] transition-all text-sm font-bold"
-                  >
-                    <option value="in_stock">В наличии (In Stock)</option>
-                    <option value="on_order">Под заказ (Made to Order)</option>
-                    <option value="out_of_stock">Нет в наличии (Out of Stock)</option>
-                  </select>
+                {/* Бестселлер */}
+                <div className="bg-white/5 rounded-2xl p-4 border border-white/10 flex flex-col justify-center">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={form.is_bestseller}
+                      onChange={(e) => setForm({ ...form, is_bestseller: e.target.checked })}
+                      className="w-5 h-5 accent-[var(--accent)]"
+                    />
+                    <span className="text-sm font-bold uppercase tracking-wider">Бестселлер (На главную)</span>
+                  </label>
                 </div>
+              </div>
+
+              {/* Статус наличия */}
+              <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                <label className="block text-xs font-bold uppercase opacity-60 mb-2">Наличие</label>
+                <select
+                  value={form.availability_status}
+                  onChange={(e) => setForm({ ...form, availability_status: e.target.value })}
+                  className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[var(--accent)] transition-all text-sm font-bold"
+                >
+                  <option value="in_stock">В наличии (In Stock)</option>
+                  <option value="on_order">Под заказ (Made to Order)</option>
+                  <option value="out_of_stock">Нет в наличии (Out of Stock)</option>
+                </select>
               </div>
             </div>
 

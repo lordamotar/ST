@@ -36,6 +36,7 @@ class ProductBase(BaseModel):
     color: Optional[str] = None
     category_id: int
     availability_status: Optional[str] = "in_stock"
+    is_bestseller: Optional[bool] = False
 
     dimensions: Optional[str] = None
     legs_material: Optional[str] = None
@@ -70,6 +71,7 @@ class ProductUpdate(BaseModel):
     category_id: Optional[int] = None
     is_active: Optional[bool] = None
     availability_status: Optional[str] = None
+    is_bestseller: Optional[bool] = None
 
     dimensions: Optional[str] = None
     legs_material: Optional[str] = None

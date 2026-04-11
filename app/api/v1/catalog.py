@@ -52,6 +52,7 @@ async def get_products(
     color: Optional[str] = None,
     slug: Optional[str] = None,
     q: Optional[str] = None,
+    is_bestseller: Optional[bool] = None,
     sort: Optional[str] = None,  # price_asc, price_desc, newest
     db: AsyncSession = Depends(get_db)
 ):
@@ -69,6 +70,8 @@ async def get_products(
         query = query.where(Product.color == color)
     if slug:
         query = query.where(Product.slug == slug)
+    if is_bestseller is not None:
+        query = query.where(Product.is_bestseller == is_bestseller)
     if q:
         query = query.where(
             Product.name.ilike(f"%{q}%") |
