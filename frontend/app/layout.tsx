@@ -60,6 +60,7 @@ export default async function RootLayout({
                 {cat.name}
               </Link>
             ))}
+            <Link href="/contacts" className="hover:text-[var(--accent)] hover:opacity-100 transition-all">Контакты</Link>
           </nav>
 
           <div className="flex items-center gap-6 sm:gap-10">
@@ -112,10 +113,11 @@ export default async function RootLayout({
               <div>
                 <h4 className="text-xs font-black uppercase tracking-widest mb-8 text-[var(--accent)]">Магазин</h4>
                 <ul className="space-y-4 text-sm text-white/50">
-                  <li className="hover:text-white cursor-pointer transition-colors">Доставка и сборка</li>
-                  <li className="hover:text-white cursor-pointer transition-colors">Гарантия качества</li>
-                  <li className="hover:text-white cursor-pointer transition-colors">Возврат и обмен</li>
-                  <li className="hover:text-white cursor-pointer transition-colors">Публичная оферта</li>
+                  <li><Link href="/delivery" className="hover:text-white transition-colors">Доставка и сборка</Link></li>
+                  <li><Link href="/warranty" className="hover:text-white transition-colors">Гарантия качества</Link></li>
+                  <li><Link href="/returns" className="hover:text-white transition-colors">Возврат и обмен</Link></li>
+                  <li><Link href="/offer" className="hover:text-white transition-colors">Публичная оферта</Link></li>
+                  <li><Link href="/contacts" className="hover:text-white transition-colors">Контакты</Link></li>
                 </ul>
               </div>
 
