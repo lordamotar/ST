@@ -37,11 +37,11 @@ fi
 # 4. Настройка базы данных
 echo -e "\n\e[33m🗄️ Настройка базы данных и запуск миграций...\e[0m"
 export PYTHONPATH=$PYTHONPATH:.
-python3 scripts/migrate.py
+python3 -m scripts.migrate
 
 # 5. Создание администратора
 echo -e "\n\e[33m👤 Создание учетной записи администратора...\e[0m"
-python3 scripts/setup_admin.py
+python3 -m scripts.setup_admin
 
 echo -e "\n\e[32m✨ Установка завершена успешно!\e[0m"
 echo "Для запуска:"
