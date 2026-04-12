@@ -7,9 +7,11 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function MobileMenu({ categories = [] }: { categories?: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
 
+  const easeCustom = [0.16, 1, 0.3, 1] as const;
+
   const menuVariants = {
-    closed: { x: "100%", transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
-    opened: { x: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } },
+    closed: { x: "100%", transition: { duration: 0.8, ease: easeCustom } },
+    opened: { x: 0, transition: { duration: 0.8, ease: easeCustom } },
   };
 
   const itemVariants = {
@@ -17,7 +19,7 @@ export default function MobileMenu({ categories = [] }: { categories?: any[] }) 
     opened: (i: number) => ({
       opacity: 1,
       x: 0,
-      transition: { delay: 0.3 + i * 0.1, duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+      transition: { delay: 0.3 + i * 0.1, duration: 0.8, ease: easeCustom },
     }),
   };
 
