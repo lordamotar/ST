@@ -1,15 +1,22 @@
 import asyncio
+import sys
+import os
+
+# Добавляем корень проекта в путь поиска модулей
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from app.core.database import async_session_maker
 from app.models.user import User
 from app.core.security import get_password_hash
 from sqlalchemy import select
+from loguru import logger
 
 async def create_superuser():
     async with async_session_maker() as session:
         # Проверяем, есть ли уже такой пользователь
         result = await session.execute(select(User).where(User.username == "admin"))
         if result.scalar_one_or_none():
-            print("❌ Администратор уже существует.")
+            logger.warning("⚠️ Администратор 'admin' уже существует.")
             return
 
         admin = User(
@@ -24,9 +31,9 @@ async def create_superuser():
         
         session.add(admin)
         await session.commit()
-        print("✅ Суперпользователь создан!")
-        print("Логин: admin")
-        print("Пароль: admin")
+        logger.success("✅ Суперпользователь создан!")
+        logger.info("Логин: admin")
+        logger.info("Пароль: admin")
 
 if __name__ == "__main__":
     asyncio.run(create_superuser())
