@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function MobileMenu({ categories = [] }: { categories?: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const easeCustom = [0.16, 1, 0.3, 1] as const;
+  const easeCustom = [0.16, 1, 0.3, 1] as any;
 
   const menuVariants = {
     closed: { x: "100%", transition: { duration: 0.8, ease: easeCustom } },
