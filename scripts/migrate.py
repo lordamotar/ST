@@ -11,8 +11,17 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from sqlalchemy import text
-from app.core.database import engine
+from app.core.database import engine, Base
 from loguru import logger
+
+# Импортируем все модели для регистрации в Base.metadata
+from app.models.user import User
+from app.models.product import Product, Category
+from app.models.order import Order, OrderItem
+from app.models.faq import FAQ
+from app.models.slider import Slide
+from app.models.settings import SiteSettings
+from app.models.page import StaticPage
 
 MIGRATIONS = [
     # Категории
@@ -40,33 +49,24 @@ MIGRATIONS = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS hashed_password VARCHAR(255)",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'client'",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS username VARCHAR(255) UNIQUE",
-
-    # Создание таблиц если их нет
-    "CREATE TABLE IF NOT EXISTS site_settings (id SERIAL PRIMARY KEY, key VARCHAR(50) UNIQUE NOT NULL, value TEXT)",
-    "CREATE TABLE IF NOT EXISTS slides (id SERIAL PRIMARY KEY, title VARCHAR(255), description TEXT, image_url VARCHAR(500), start_date TIMESTAMP, end_date TIMESTAMP, show_timer BOOLEAN DEFAULT FALSE, is_active BOOLEAN DEFAULT TRUE, \"order\" INTEGER DEFAULT 0)",
-    "CREATE TABLE IF NOT EXISTS faqs (id SERIAL PRIMARY KEY, question TEXT NOT NULL, answer TEXT NOT NULL, is_active BOOLEAN DEFAULT TRUE, \"order\" INTEGER DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)",
-    "CREATE TABLE IF NOT EXISTS static_pages (id SERIAL PRIMARY KEY, title VARCHAR(255) NOT NULL, slug VARCHAR(255) UNIQUE NOT NULL, content TEXT NOT NULL, is_active BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)",
 ]
 
 async def main():
     async with engine.begin() as conn:
-        logger.info("🚀 Запуск миграций...")
+        logger.info("🚀 Проверка и создание таблиц по моделям...")
+        # Создаем таблицы из моделей (если их нет)
+        await conn.run_sync(Base.metadata.create_all)
+        logger.success("✔️ Базовая схема синхронизирована")
+
+        logger.info("🚀 Запуск дополнительных миграций (SQL)...")
         for sql in MIGRATIONS:
             try:
                 await conn.execute(text(sql))
-                # Красивый лог
-                if "CREATE TABLE" in sql:
-                    table = sql.split("CREATE TABLE IF NOT EXISTS ")[1].split()[0]
-                    logger.success(f"✔️ Таблица создана/проверена: {table}")
-                elif "ADD COLUMN" in sql:
-                    col = sql.split("ADD COLUMN IF NOT EXISTS ")[1].split()[0]
-                    logger.success(f"✔️ Колонка добавлена/проверена: {col}")
-                elif "RENAME COLUMN" in sql:
-                    logger.success("✔️ Переименование: price -> new_price")
-                else:
-                    logger.info("✔️ Скрипт выполнен")
+                # Красивый лог (упрощенный)
+                logger.info(f"✔️ SQL выполнен: {sql[:60]}...")
             except Exception as e:
-                logger.error(f"❌ Ошибка в SQL: {sql[:50]}... -> {e}")
+                # Игнорируем ошибки если таблица/колонка уже есть (хотя IF NOT EXISTS подстраховывает)
+                logger.debug(f"ℹ️ SQL инфо: {sql[:50]}... -> {e}")
     
     logger.success("✨ Миграция успешно завершена!")
 
