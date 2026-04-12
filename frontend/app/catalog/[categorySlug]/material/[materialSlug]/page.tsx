@@ -12,8 +12,8 @@ export async function generateMetadata({ params }: { params: any }): Promise<Met
   const categoryName = category?.name || translateSlug(categorySlug);
   
   return {
-    title: `Купить ${categoryName.toLowerCase()} из материала: ${materialName} | Stoly-Sklad`,
-    description: `Большой выбор дизайнерских ${categoryName.toLowerCase()} из материала ${materialName.toLowerCase()}. Премиальное качество, доставка по всей России.`,
+    title: `Заказать ${categoryName.toLowerCase()} из материала ${materialName} в Семее и Астане | Stoly-Sklad`,
+    description: `Большой выбор дизайнерских ${categoryName.toLowerCase()} из материала ${materialName.toLowerCase()} в Семее и Астане. Премиальное качество, доставка по всему Казахстану.`,
   };
 }
 

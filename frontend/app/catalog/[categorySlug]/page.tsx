@@ -17,8 +17,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!category) return { title: "Категория не найдена | Stoly-Sklad" };
 
   return {
-    title: `Купить премиальные ${category.name.toLowerCase()} | Stoly-Sklad`,
-    description: category.description || `Коллекция дизайнерских ${category.name.toLowerCase()} по выгодным ценам. Доставка по всей России.`,
+    title: `Купить премиальные ${category.name.toLowerCase()} в Семее и Астане | Stoly-Sklad`,
+    description: category.description || `Коллекция дизайнерских ${category.name.toLowerCase()} по выгодным ценам в Семее и Астане. Доставка по всему Казахстану.`,
     alternates: {
         canonical: `/catalog/${category.slug}`
     }

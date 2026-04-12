@@ -11,7 +11,7 @@ from datetime import datetime
 
 router = APIRouter()
 
-@router.get("/", response_model=List[SlideResponse])
+@router.get("", response_model=List[SlideResponse])
 async def get_slides(db: AsyncSession = Depends(get_db)):
     """Получить список всех активных слайдов."""
     # Для клиентов отдаем только активные и подходящие по датам
@@ -20,7 +20,7 @@ async def get_slides(db: AsyncSession = Depends(get_db)):
     result = await db.execute(query)
     return result.scalars().all()
 
-@router.post("/", response_model=SlideResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SlideResponse, status_code=status.HTTP_201_CREATED)
 async def create_slide(
     slide_in: SlideCreate,
     db: AsyncSession = Depends(get_db),

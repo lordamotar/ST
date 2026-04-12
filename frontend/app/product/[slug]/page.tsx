@@ -15,8 +15,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!product) return { title: "Товар не найден | Stoly-Sklad" };
 
   return {
-    title: `${product.name} — Купить за ${product.new_price.toLocaleString()} ₸ | Stoly-Sklad`,
-    description: `Закажите ${product.name.toLowerCase()} из материала ${product.material}. Премиальное качество, индивидуальный подход.`,
+    title: `${product.name} — Купить в Семее и Астане за ${product.new_price.toLocaleString()} ₸ | Stoly-Sklad`,
+    description: `Закажите ${product.name.toLowerCase()} из материала ${product.material} в Семее и Астане. Премиальное качество, индивидуальный подход и доставка по всему Казахстану.`,
   };
 }
 

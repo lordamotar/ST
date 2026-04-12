@@ -21,7 +21,7 @@ class PageResponse(PageSchema):
     class Config:
         from_attributes = True
 
-@router.get("/", response_model=List[PageResponse])
+@router.get("", response_model=List[PageResponse])
 async def get_all_pages(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(StaticPage))
     return result.scalars().all()
@@ -34,7 +34,7 @@ async def get_page_by_slug(slug: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Page not found")
     return page
 
-@router.post("/", response_model=PageResponse)
+@router.post("", response_model=PageResponse)
 async def create_or_update_page(
     page_data: PageSchema, 
     db: AsyncSession = Depends(get_db),

@@ -68,12 +68,23 @@ export default function HeroSlider({ slides, defaultSettings }: { slides: Slide[
           transition={{ duration: 1 }}
           className="absolute inset-0 z-0"
         >
+          {(() => {
+            const finalUrl = slide.image_url.startsWith('http') 
+              ? slide.image_url 
+              : slide.image_url.startsWith('/') 
+                ? `${BASE_URL}${slide.image_url}`
+                : `${BASE_URL}/${slide.image_url}`;
+            
+            return (
+              <img 
+                src={finalUrl} 
+                alt={slide.title} 
+                className="w-full h-full object-cover" 
+                onError={(e) => console.error("Slider Fail:", finalUrl)}
+              />
+            );
+          })()}
           <div className="absolute inset-0 bg-black/60 z-10"></div>
-          <img 
-            src={slide.image_url.startsWith('http') ? slide.image_url : `${BASE_URL}${slide.image_url}`} 
-            alt="" 
-            className="w-full h-full object-cover" 
-          />
         </motion.div>
       </AnimatePresence>
 

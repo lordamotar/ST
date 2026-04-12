@@ -22,12 +22,12 @@ class FAQResponse(FAQSchema):
     class Config:
         from_attributes = True
 
-@router.get("/", response_model=List[FAQResponse])
+@router.get("", response_model=List[FAQResponse])
 async def get_faqs(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(FAQ).order_by(FAQ.order.asc()))
     return result.scalars().all()
 
-@router.post("/", response_model=FAQResponse)
+@router.post("", response_model=FAQResponse)
 async def create_faq(
     faq_data: FAQSchema, 
     db: AsyncSession = Depends(get_db),
