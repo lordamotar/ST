@@ -17,7 +17,7 @@ from loguru import logger
 # Импортируем все модели для регистрации в Base.metadata
 from app.models.user import User
 from app.models.product import Product, Category
-from app.models.order import Order, OrderItem
+from app.models.order import Order
 from app.models.faq import FAQ
 from app.models.slider import Slide
 from app.models.settings import SiteSettings
