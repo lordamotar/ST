@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Text, Boolean, JSON
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Text, Boolean, JSON, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from typing import List, Optional
 from app.core.database import Base
@@ -56,3 +57,8 @@ class Product(Base):
     # Свойства для SEO (материалы, цвета)
     material: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
     color: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+
+    # Таймер акции
+    promo_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    promo_end: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    show_timer: Mapped[bool] = mapped_column(Boolean, default=False)

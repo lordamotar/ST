@@ -12,7 +12,7 @@ from loguru import logger
 
 router = APIRouter()
 
-@router.post("/", response_model=OrderResponse)
+@router.post("", response_model=OrderResponse)
 async def create_order(order_in: OrderCreate, db: AsyncSession = Depends(get_db)):
     # Нормализация телефона покупателя
     phone_digits = "".join(filter(str.isdigit, order_in.customer_phone))
@@ -38,7 +38,7 @@ async def create_order(order_in: OrderCreate, db: AsyncSession = Depends(get_db)
     logger.info(f"New order created: ID={db_order.id}, Customer={db_order.customer_name}, Phone={db_order.customer_phone}")
     return db_order
 
-@router.get("/", response_model=List[OrderResponse])
+@router.get("", response_model=List[OrderResponse])
 async def list_orders(
     db: AsyncSession = Depends(get_db), 
     admin: User = Depends(check_admin)

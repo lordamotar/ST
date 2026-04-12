@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import CountdownTimer from "./CountdownTimer";
 
 const BACKEND_URL = "http://127.0.0.1:8000";
 
@@ -88,13 +89,31 @@ export default function ProductCard({ product, hideDetails = false }: { product:
             )}
           </div>
 
-          <div className="flex justify-between items-center pt-6 border-t border-white/[0.03]">
+          <div className="flex justify-between items-end pt-6 border-t border-white/[0.03]">
             <div className="flex flex-col">
-              <span className="text-[8px] font-black uppercase tracking-[0.3em] opacity-20 mb-1">Price</span>
-              <div className="flex items-baseline gap-3">
-                <span className="text-2xl font-black text-[var(--accent)] tracking-tighter whitespace-nowrap">{product.new_price?.toLocaleString()} ₸</span>
+              <span className="text-[8px] font-black uppercase tracking-[0.3em] opacity-20 mb-2">Price</span>
+              
+              {/* Timer Block */}
+              {product.show_timer && product.promo_end && new Date(product.promo_end) > new Date() && (
+                <div className="mb-4 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                    <CountdownTimer endDate={product.promo_end} />
+                  </div>
+                  <div className="text-[8px] font-bold uppercase tracking-widest opacity-30">
+                    Акция: {product.promo_start ? new Date(product.promo_start).toLocaleDateString() : '...'} — {new Date(product.promo_end).toLocaleDateString()}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1">
+                <span className={`text-2xl font-black tracking-tighter whitespace-nowrap ${product.show_timer && product.promo_end && new Date(product.promo_end) > new Date() ? 'text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.3)]' : 'text-[var(--accent)]'}`}>
+                  {product.new_price?.toLocaleString()} ₸
+                </span>
                 {product.old_price && (
-                  <span className="text-[10px] font-bold opacity-20 line-through decoration-[var(--accent)]/30">{product.old_price?.toLocaleString()} ₸</span>
+                  <span className="text-[11px] font-bold opacity-20 line-through decoration-white/30 ml-0.5">
+                    {product.old_price?.toLocaleString()} ₸
+                  </span>
                 )}
               </div>
             </div>

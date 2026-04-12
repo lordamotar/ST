@@ -12,7 +12,7 @@ from loguru import logger
 
 router = APIRouter()
 
-@router.get("/", response_model=List[SettingResponse])
+@router.get("", response_model=List[SettingResponse])
 async def get_all_settings(db: AsyncSession = Depends(get_db)):
     """Получить все публичные настройки сайта."""
     result = await db.execute(select(SiteSettings))

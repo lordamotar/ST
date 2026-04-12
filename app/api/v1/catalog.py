@@ -53,14 +53,17 @@ async def get_products(
     slug: Optional[str] = None,
     q: Optional[str] = None,
     is_bestseller: Optional[bool] = None,
-    sort: Optional[str] = None,  # price_asc, price_desc, newest
+    is_active: Optional[bool] = None,
+    all_products: bool = Query(False),
+    sort: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
-    """Каталог товаров с фильтрацией и поиском."""
-    if q:
-        print(f"DEBUG: SEARCH QUERY RECEIVED -> {q}")
-
     query = select(Product).join(Category).options(selectinload(Product.category))
+
+    if is_active is not None:
+        query = query.where(Product.is_active == is_active)
+    elif not all_products:
+        query = query.where(Product.is_active == True)
 
     if category_slug:
         query = query.where(Category.slug == category_slug)
@@ -113,6 +116,7 @@ async def download_excel_template(
     headers = [
         "name", "new_price", "old_price", "category_id", "slug",
         "material", "color", "description", "image_url", "is_active", "availability_status",
+        "show_timer", "promo_start", "promo_end",
         "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
         "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
         "Подпятники", "Гарантия", "Вариант доставки", "Опоры", "Страна", "Серия"
@@ -120,6 +124,7 @@ async def download_excel_template(
     header_labels = [
         "Название товара *", "Новая цена (₸) *", "Старая цена (₸)", "ID Категории *", "Slug (URL)",
         "Материал", "Цвет", "Описание товара", "Ссылка на фото", "Активен (TRUE/FALSE)", "Наличие (в наличии/под заказ)",
+        "Показать таймер (TRUE/FALSE)", "Дата начала акции (ГГГГ-ММ-ДД)", "Дата окончания акции (ГГГГ-ММ-ДД)",
         "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
         "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
         "Подпятники", "Гарантия", "Вариант доставки", "Опоры", "Страна", "Серия"
@@ -217,143 +222,11 @@ async def get_product_by_slug(slug: str, db: AsyncSession = Depends(get_db)):
     db_product = result.scalar_one_or_none()
     if not db_product:
         raise HTTPException(status_code=404, detail="Товар не найден")
-    return db_product
-
-
-@router.get("/categories/{slug}", response_model=CategoryResponse)
-async def get_category_by_slug(slug: str, db: AsyncSession = Depends(get_db)):
-    """Получить одну категорию по её slug."""
-    result = await db.execute(select(Category).where(Category.slug == slug))
-    db_cat = result.scalar_one_or_none()
-    if not db_cat:
-        raise HTTPException(status_code=404, detail="Категория не найдена")
-    return db_cat
-
-
-@router.get("/products/template")
-async def download_excel_template(
-    admin: User = Depends(require_roles(["admin", "manager"]))
-):
-    """
-    Скачать шаблон Excel для массового импорта товаров.
-    """
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-    from fastapi.responses import StreamingResponse
-    import io
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Товары"
-
-    # Заголовки
-    headers = [
-        "name", "new_price", "old_price", "category_id", "slug",
-        "material", "color", "description", "image_url", "is_active", "availability_status",
-        "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
-        "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
-        "Подпятники", "Гарантия", "Вариант доставки", "Опоры", "Страна", "Серия"
-    ]
-    header_labels = [
-        "Название товара *", "Новая цена (₸) *", "Старая цена (₸)", "ID Категории *", "Slug (URL)",
-        "Материал", "Цвет", "Описание товара", "Ссылка на фото", "Активен (TRUE/FALSE)", "Наличие (в наличии/под заказ)",
-        "Размеры", "Материал ножек (опор)", "Материал столешницы", "Толщина столешницы",
-        "Просвет от пола", "Максимальная нагрузка", "Регулировка опор", "Цвет столешницы",
-        "Подпятники", "Гарантия", "Вариант доставки", "Опоры", "Страна", "Серия"
-    ]
-
-    # Стили заголовков
-    header_fill = PatternFill(start_color="D4AF37", end_color="D4AF37", fill_type="solid")
-    header_font = Font(name="Arial", size=11, bold=True, color="FFFFFF")
-    thin_border = Border(
-        left=Side(style='thin'), right=Side(style='thin'),
-        top=Side(style='thin'), bottom=Side(style='thin')
-    )
-
-    # Строка 1: Машинные заголовки (для парсинга)
-    for col_idx, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_idx, value=header)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = thin_border
-
-    # Строка 2: Описание полей
-    desc_font = Font(name="Arial", size=9, italic=True, color="888888")
-    for col_idx, label in enumerate(header_labels, 1):
-        cell = ws.cell(row=2, column=col_idx, value=label)
-        cell.font = desc_font
-        cell.alignment = Alignment(horizontal="center")
-
-    # Примеры данных (строки 3-5)
-    examples = [
-        ["Стул 'Осло' из дуба", 125000, 150000, 1, "oslo-oak-chair", "oak", "natural",
-         "Эргономичный стул из массива дуба.",
-         "https://example.com/photos/oslo-chair.jpg", True, "в наличии",
-         "Длина 120 смхШирина 60 смхВысота 75 см", "сталь", "МДФ 15 мм", "1.5 см", "12 см", "15 кг", "нет", "Дуб Натуральный", "пластиковые", "12 месяцев", "в разобранном виде", "Черный", "Китай", "Рико"]
-    ]
-
-    data_font = Font(name="Arial", size=10)
-    for row_idx, row_data in enumerate(examples, 3):
-        for col_idx, value in enumerate(row_data, 1):
-            cell = ws.cell(row=row_idx, column=col_idx, value=value)
-            cell.font = data_font
-            cell.border = thin_border
-            cell.alignment = Alignment(wrap_text=True, vertical="top")
-
-    # Ширина колонок
-    col_widths = [30, 12, 14, 25, 15, 12, 50, 40, 18, 25] + [15]*14
-    for col_idx, width in enumerate(col_widths, 1):
-        ws.column_dimensions[chr(64 + col_idx)].width = width
-
-    # Высота строк с примерами
-    for row_idx in range(3, 6):
-        ws.row_dimensions[row_idx].height = 45
-
-    # Лист 2: Справочник категорий
-    ws2 = wb.create_sheet(title="Категории (справочник)")
-    ws2.cell(row=1, column=1, value="ID").font = header_font
-    ws2.cell(row=1, column=1).fill = header_fill
-    ws2.cell(row=1, column=2, value="Название").font = header_font
-    ws2.cell(row=1, column=2).fill = header_fill
-    ws2.cell(row=1, column=3, value="Slug").font = header_font
-    ws2.cell(row=1, column=3).fill = header_fill
-
-    cat_examples = [
-        [1, "Стулья", "chairs"],
-        [2, "Диваны", "sofas"],
-        [3, "Столы", "tables"],
-        [4, "Шкафы", "cupboards"],
-    ]
-    for row_idx, cat in enumerate(cat_examples, 2):
-        for col_idx, value in enumerate(cat, 1):
-            ws2.cell(row=row_idx, column=col_idx, value=value).font = data_font
-    ws2.column_dimensions['A'].width = 8
-    ws2.column_dimensions['B'].width = 20
-    ws2.column_dimensions['C'].width = 20
-
-    # Сохраняем в буфер
-    buffer = io.BytesIO()
-    wb.save(buffer)
-    buffer.seek(0)
-    wb.close()
-
-    return StreamingResponse(
-        buffer,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=products_import_template.xlsx"}
-    )
-
-
-@router.get("/products/{slug}", response_model=ProductResponse)
-async def get_product_by_slug(slug: str, db: AsyncSession = Depends(get_db)):
-    """Получить один товар по его slug."""
-    result = await db.execute(
-        select(Product).where(Product.slug == slug).options(selectinload(Product.category))
-    )
-    db_product = result.scalar_one_or_none()
-    if not db_product:
-        raise HTTPException(status_code=404, detail="Товар не найден")
+    
+    # Скрываем неактивные товары для публичного доступа
+    if not db_product.is_active:
+        raise HTTPException(status_code=404, detail="Товар временно недоступен")
+        
     return db_product
 
 
@@ -580,6 +453,7 @@ async def bulk_import_products(
         dynamic_cols = {}
         expected = [
             "name", "new_price", "old_price", "category_id", "slug", "material", "color", "description", "image_url", "is_active", "availability_status",
+            "show_timer", "promo_start", "promo_end",
             "dimensions", "legs_material", "tabletop_material", "tabletop_thickness", "floor_clearance", "max_load",
             "legs_adjustment", "tabletop_color", "footings", "warranty", "delivery_format", "supports", "country", "series"
         ]
@@ -604,7 +478,10 @@ async def bulk_import_products(
             "страна": "country",
             "серия": "series",
             "наличие": "availability_status",
-            "статус наличия": "availability_status"
+            "статус наличия": "availability_status",
+            "показать таймер": "show_timer",
+            "дата начала акции": "promo_start",
+            "дата окончания акции": "promo_end"
         }
 
         for idx, (h_lower, h_orig) in enumerate(zip(headers, original_headers)):
@@ -686,37 +563,19 @@ async def bulk_import_products(
                 if image_url and image_url.lower() == "none":
                     image_url = None
 
-                is_active = True
-                if "is_active" in col_map:
-                    is_active_val = str(row[col_map["is_active"]]).strip().lower()
-                    is_active = is_active_val in ["true", "1", "yes", "да"]
+                # Таймер и промо
+                show_timer = False
+                if "show_timer" in col_map:
+                    st_val = str(row[col_map["show_timer"]]).strip().lower()
+                    show_timer = st_val in ["true", "1", "yes", "да"]
 
-                availability_status = "in_stock"
-                if "availability_status" in col_map:
-                    avail_val = str(row[col_map["availability_status"]]).strip().lower()
-                    if avail_val in ["под заказ", "on_order", "made_to_order"]:
-                        availability_status = "on_order"
-                    elif avail_val in ["нет в наличии", "out_of_stock"]:
-                        availability_status = "out_of_stock"
-                    elif avail_val:
-                        availability_status = "in_stock"
-
-                # Характеристики из дополнительных колонок
-                char_dict = {}
-                for d_key, d_idx in dynamic_cols.items():
+                from datetime import datetime
+                def parse_date(val):
+                    if not val or str(val).lower() == "none": return None
+                    if isinstance(val, datetime): return val
                     try:
-                        d_val = row[d_idx]
-                        if d_val is not None and str(d_val).strip() and str(d_val).strip().lower() != "none":
-                            char_dict[d_key] = str(d_val).strip()
-                    except IndexError:
-                        pass # Пустые ячейки в конце строки могут быть отсечены
-
-                def get_val(key):
-                    if key not in col_map: return None
-                    try:
-                        v = row[col_map[key]]
-                        return str(v).strip() if v is not None and str(v).strip().lower() != "none" else None
-                    except IndexError:
+                        return datetime.fromisoformat(str(val))
+                    except:
                         return None
 
                 product = Product(
@@ -731,6 +590,9 @@ async def bulk_import_products(
                     image_url=image_url,
                     is_active=is_active,
                     availability_status=availability_status,
+                    show_timer=show_timer,
+                    promo_start=parse_date(row[col_map["promo_start"]]) if "promo_start" in col_map else None,
+                    promo_end=parse_date(row[col_map["promo_end"]]) if "promo_end" in col_map else None,
                     dimensions=get_val("dimensions"),
                     legs_material=get_val("legs_material"),
                     tabletop_material=get_val("tabletop_material"),

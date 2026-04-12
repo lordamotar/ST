@@ -8,11 +8,10 @@ interface Category { id: number; name: string; slug: string; }
 interface Product {
   id: number; name: string; slug: string; new_price: number; old_price?: number;
   material?: string; color?: string; description?: string;
-  id: number; name: string; slug: string; new_price: number; old_price?: number;
-  material?: string; color?: string; description?: string;
   image_url?: string; characteristics?: Record<string, string>;
   category_id: number; is_active: boolean; availability_status: string;
   is_bestseller: boolean;
+  promo_start?: string; promo_end?: string; show_timer: boolean;
   dimensions?: string; legs_material?: string; tabletop_material?: string; tabletop_thickness?: string;
   floor_clearance?: string; max_load?: string; legs_adjustment?: string; tabletop_color?: string;
   footings?: string; warranty?: string; delivery_format?: string; supports?: string; country?: string; series?: string;
@@ -21,6 +20,7 @@ interface Product {
 
 const EMPTY_FORM = { 
   name: "", slug: "", new_price: 0, old_price: 0, material: "", color: "", description: "", category_id: 1, is_active: true, is_bestseller: false, availability_status: "in_stock", image_url: "", 
+  promo_start: "", promo_end: "", show_timer: false,
   characteristics: [] as {k: string; v: string}[],
   dimensions: "", legs_material: "", tabletop_material: "", tabletop_thickness: "",
   floor_clearance: "", max_load: "", legs_adjustment: "", tabletop_color: "",
@@ -81,7 +81,7 @@ export default function AdminProducts() {
     setLoading(true);
     try {
       const [pRes, cRes] = await Promise.all([
-        fetch(`${API_URL}/catalog/products`, { cache: "no-store" }),
+        fetch(`${API_URL}/catalog/products?all_products=true`, { cache: "no-store" }),
         fetch(`${API_URL}/catalog/categories`),
       ]);
       if (pRes.ok) setProducts(await pRes.json());
@@ -170,11 +170,25 @@ export default function AdminProducts() {
 
   const openEdit = (p: Product) => {
     const charsArray = Object.entries(p.characteristics || {}).map(([k, v]) => ({ k, v }));
+    
+    // Helper to format date for input[type="datetime-local"]
+    const formatDate = (dateStr?: string) => {
+      if (!dateStr) return "";
+      try {
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return "";
+        return d.toISOString().slice(0, 16); // YYYY-MM-DDTHH:mm
+      } catch { return ""; }
+    };
+
     setForm({
       name: p.name, slug: p.slug, new_price: p.new_price, old_price: p.old_price ?? 0,
       material: p.material ?? "", color: p.color ?? "",
       description: p.description ?? "", category_id: p.category_id,
       is_active: p.is_active, is_bestseller: p.is_bestseller || false, availability_status: p.availability_status || "in_stock", image_url: p.image_url ?? "",
+      promo_start: formatDate(p.promo_start),
+      promo_end: formatDate(p.promo_end),
+      show_timer: p.show_timer || false,
       dimensions: p.dimensions ?? "", legs_material: p.legs_material ?? "", tabletop_material: p.tabletop_material ?? "",
       tabletop_thickness: p.tabletop_thickness ?? "", floor_clearance: p.floor_clearance ?? "", max_load: p.max_load ?? "",
       legs_adjustment: p.legs_adjustment ?? "", tabletop_color: p.tabletop_color ?? "", footings: p.footings ?? "",
@@ -199,7 +213,9 @@ export default function AdminProducts() {
         new_price: Number(form.new_price),
         old_price: form.old_price ? Number(form.old_price) : null,
         category_id: Number(form.category_id),
-        characteristics: charRecord 
+        characteristics: charRecord,
+        promo_start: form.promo_start || null,
+        promo_end: form.promo_end || null,
       };
       const url = modal === "edit" && editTarget
         ? `${API_URL}/catalog/products/${editTarget.id}`
@@ -794,6 +810,45 @@ export default function AdminProducts() {
                     ))}
                   </div>
                 )}
+              </div>
+
+               <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                <div className="flex justify-between items-center mb-6">
+                  <label className="block text-xs font-bold uppercase opacity-60">Параметры акции</label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={form.show_timer}
+                      onChange={(e) => setForm({ ...form, show_timer: e.target.checked })}
+                      className="w-5 h-5 accent-[var(--accent)]"
+                    />
+                    <span className="text-sm font-bold uppercase tracking-wider group-hover:text-[var(--accent)] transition-colors">Показывать таймер</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase opacity-40 mb-2">Начало акции</label>
+                    <input
+                      type="datetime-local"
+                      value={form.promo_start}
+                      onChange={(e) => setForm({ ...form, promo_start: e.target.value })}
+                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[var(--accent)] text-sm transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase opacity-40 mb-2">Конец акции</label>
+                    <input
+                      type="datetime-local"
+                      value={form.promo_end}
+                      onChange={(e) => setForm({ ...form, promo_end: e.target.value })}
+                      className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[var(--accent)] text-sm transition-all"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] opacity-25 mt-4 leading-relaxed">
+                  * Если таймер включен, на странице товара будет отображаться обратный отсчет до конца акции, а цена будет выделена красным.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

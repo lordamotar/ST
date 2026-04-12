@@ -11,7 +11,7 @@ from loguru import logger
 
 router = APIRouter()
 
-@router.get("/", response_model=List[UserResponse])
+@router.get("", response_model=List[UserResponse])
 async def list_users(
     db: AsyncSession = Depends(get_db), 
     admin: User = Depends(check_admin)
@@ -20,7 +20,7 @@ async def list_users(
     result = await db.execute(select(User).order_by(User.id))
     return result.scalars().all()
 
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     user_in: UserCreate, 
     db: AsyncSession = Depends(get_db), 

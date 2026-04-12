@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 from typing import Optional, List
 
@@ -38,6 +39,11 @@ class ProductBase(BaseModel):
     availability_status: Optional[str] = "in_stock"
     is_bestseller: Optional[bool] = False
 
+    # Таймер акции
+    promo_start: Optional[datetime] = None
+    promo_end: Optional[datetime] = None
+    show_timer: bool = False
+
     dimensions: Optional[str] = None
     legs_material: Optional[str] = None
     tabletop_material: Optional[str] = None
@@ -62,6 +68,11 @@ class ProductCreate(ProductBase):
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
     slug: Optional[str] = None
+    
+    # Таймер акции
+    promo_start: Optional[datetime] = None
+    promo_end: Optional[datetime] = None
+    show_timer: Optional[bool] = None
     new_price: Optional[float] = None
     old_price: Optional[float] = None
     description: Optional[str] = None
