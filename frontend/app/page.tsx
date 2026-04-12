@@ -6,6 +6,17 @@ import ProductCard from "@/components/ProductCard";
 import AnimatedSection from "@/components/AnimatedSection";
 import { HeroText, FadeIn, Counter } from "@/components/HeroAnimations";
 import HeroSlider from "@/components/HeroSlider";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Stoly-Sklad — Дизайнерская мебель премиального качества в Семее",
+  description: "Огромный выбор столов, стульев и предметов интерьера. Премиальное качество, индивидуальный дизайн и быстрая доставка. Закажите мебель своей мечты прямо сейчас!",
+  openGraph: {
+    title: "Stoly-Sklad — Мебель твоей мечты",
+    description: "Авторская мебель для дома и офиса в Семее. Узнайте больше в нашем каталоге.",
+    type: "website",
+  }
+};
 
 export default async function Home() {
   const dbCategories = await getCategories();
@@ -228,6 +239,24 @@ export default async function Home() {
           </AnimatedSection>
         </div>
       </section>
+      {/* FAQ JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": allFaqs.map((faq: any) => ({
+              "@type": "Question",
+              "name": faq.question,
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": faq.answer
+              }
+            }))
+          })
+        }}
+      />
     </div>
   );
 }

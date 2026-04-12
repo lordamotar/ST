@@ -153,6 +153,31 @@ export default async function ProductPage({ params }: Props) {
           </AnimatedSection>
         </div>
       </div>
+      {/* Product Schema JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org/",
+            "@type": "Product",
+            "name": product.name,
+            "image": product.image_url ? [`http://localhost:8000${product.image_url}`] : [],
+            "description": product.description,
+            "sku": `SS-${product.id}`,
+            "brand": {
+              "@type": "Brand",
+              "name": "Stoly-Sklad"
+            },
+            "offers": {
+              "@type": "Offer",
+              "url": `http://localhost:3000/product/${product.slug}`,
+              "priceCurrency": "KZT",
+              "price": product.new_price,
+              "availability": "https://schema.org/InStock"
+            }
+          })
+        }}
+      />
     </div>
   );
 }

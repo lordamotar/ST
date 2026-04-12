@@ -75,6 +75,7 @@ async def root():
 
 from app.api.v1.faq import router as faq_router
 from app.api.v1.pages import router as pages_router
+from app.api.v1.seo import router as seo_router
 
 # Добавление роутеров API
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
@@ -85,4 +86,10 @@ app.include_router(settings_router, prefix="/api/v1/settings", tags=["settings"]
 app.include_router(slider_router, prefix="/api/v1/slider", tags=["slider"])
 app.include_router(faq_router, prefix="/api/v1/faq", tags=["faq"])
 app.include_router(pages_router, prefix="/api/v1/pages", tags=["pages"])
+app.include_router(seo_router, prefix="/api/v1/seo", tags=["seo"])
 app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def sitemap_xml(db: AsyncSession = Depends(get_db)):
+    from app.api.v1.seo import get_sitemap
+    return await get_sitemap(db)

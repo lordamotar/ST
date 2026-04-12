@@ -1,6 +1,24 @@
 import { getPage } from "@/lib/api";
 import { notFound } from "next/navigation";
 import AnimatedSection from "@/components/AnimatedSection";
+import type { Metadata } from "next";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const page = await getPage(slug);
+  
+  if (!page) return { title: "Страница не найдена | Stoly-Sklad" };
+
+  return {
+    title: `${page.title} — Stoly-Sklad`,
+    description: `Узнайте больше про ${page.title.toLowerCase()} в магазине дизайнерской мебели Stoly-Sklad. Премиальное качество и отличный сервис в Семее.`,
+    openGraph: {
+      title: page.title,
+      description: `Информация о разделе ${page.title} магазина Stoly-Sklad.`,
+      type: "article",
+    }
+  };
+}
 
 export default async function StaticPageView({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
