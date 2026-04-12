@@ -36,6 +36,7 @@ fi
 
 # 4. Настройка базы данных
 echo -e "\n\e[33m🗄️ Настройка базы данных и запуск миграций...\e[0m"
+export PYTHONPATH=$PYTHONPATH:.
 python3 scripts/migrate.py
 
 # 5. Создание администратора
@@ -44,5 +45,5 @@ python3 scripts/setup_admin.py
 
 echo -e "\n\e[32m✨ Установка завершена успешно!\e[0m"
 echo "Для запуска:"
-echo "  1. Backend: uvicorn app.main:app --host 0.0.0.0 --port 8000"
-echo "  2. Frontend: cd frontend && npm run dev (или build && start)"
+echo "  1. Backend (Screen): screen -d -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
+echo "  2. Frontend: cd frontend && npm run build && npm run start"
