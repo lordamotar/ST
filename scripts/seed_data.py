@@ -18,6 +18,7 @@ from app.models.faq import FAQ
 from app.models.slider import Slide
 from app.models.settings import SiteSettings
 from app.models.user import User
+from app.core.security import get_password_hash
 
 async def seed_data():
     print("🌱 Начинаем заполнение тестовыми данными...")
@@ -26,6 +27,21 @@ async def seed_data():
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as session:
+        # --- 0. АДМИНИСТРАТОР ---
+        result = await session.execute(select(User).where(User.username == "admin"))
+        if not result.scalar_one_or_none():
+            admin = User(
+                username="admin",
+                phone="77777777777",
+                full_name="Главный Администратор",
+                hashed_password=get_password_hash("admin"),
+                role="admin",
+                is_active=True,
+                is_admin=True
+            )
+            session.add(admin)
+            print("✅ Администратор создан: admin / admin")
+        
         # --- 1. КАТЕГОРИИ ---
         categories_data = [
             {"name": "Столы", "slug": "tables", "description": "Дизайнерские столы из массива дерева и камня."},
