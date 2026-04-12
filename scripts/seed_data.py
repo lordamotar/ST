@@ -13,10 +13,11 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import select
 from app.core.config import settings
-from app.models.catalog import Category, Product
-from app.models.content import SliderSlide, FAQ, SiteSetting
+from app.models.product import Category, Product
+from app.models.faq import FAQ
+from app.models.slider import Slide
+from app.models.settings import SiteSettings
 from app.models.user import User
-from app.core.security import get_password_hash
 
 async def seed_data():
     print("🌱 Начинаем заполнение тестовыми данными...")
@@ -47,13 +48,12 @@ async def seed_data():
 
         # --- 2. ТОВАРЫ ---
         products_data = [
-            # Столы
             {
                 "name": "Обеденный стол 'Titanium Oak'",
                 "slug": "titanium-oak-table",
                 "description": "Массив дуба, ручная обработка, титановое основание.",
-                "price": 450000,
                 "new_price": 380000,
+                "old_price": 450000,
                 "category_id": categories["tables"].id,
                 "material": "Дуб",
                 "color": "Натуральный",
@@ -65,7 +65,6 @@ async def seed_data():
                 "name": "Кофейный столик 'Minimalist Glass'",
                 "slug": "minimalist-glass",
                 "description": "Закаленное стекло и матовая сталь.",
-                "price": 85000,
                 "new_price": 85000,
                 "category_id": categories["tables"].id,
                 "material": "Стекло",
@@ -73,13 +72,12 @@ async def seed_data():
                 "is_active": True,
                 "characteristics": {"Диаметр": "60см", "Высота": "45см"}
             },
-            # Стулья
             {
                 "name": "Кресло 'Velvet Royal'",
                 "slug": "velvet-royal-chair",
                 "description": "Бархатная обивка изумрудного цвета, золотые ножки.",
-                "price": 120000,
                 "new_price": 95000,
+                "old_price": 120000,
                 "category_id": categories["chairs"].id,
                 "material": "Велюр",
                 "color": "Изумруд",
@@ -91,20 +89,19 @@ async def seed_data():
                 "name": "Стул 'Nordic Loft'",
                 "slug": "nordic-loft",
                 "description": "Минимализм в каждой детали. Эко-кожа и металл.",
-                "price": 45000,
                 "new_price": 39000,
+                "old_price": 45000,
                 "category_id": categories["chairs"].id,
                 "material": "Эко-кожа",
                 "color": "Графит",
                 "is_active": True
             },
-            # Диваны
             {
                 "name": "Диван 'Cloud Comfort'",
                 "slug": "cloud-comfort-sofa",
                 "description": "Трехместный диван с эффектом памяти.",
-                "price": 850000,
                 "new_price": 720000,
+                "old_price": 850000,
                 "category_id": categories["sofas"].id,
                 "material": "Шенилл",
                 "color": "Бежевый",
@@ -124,26 +121,24 @@ async def seed_data():
         slides_data = [
             {
                 "title": "Весенняя коллекция 2026",
-                "subtitle": "Обновите интерьер с выгодой до 30%",
-                "button_text": "Смотреть каталог",
-                "button_link": "/catalog",
+                "description": "Обновите интерьер с выгодой до 30%. Премиальное качество от производителя.",
+                "image_url": "/assets/slider_spring.png",
                 "is_active": True,
                 "order": 1
             },
             {
                 "title": "Индивидуальный заказ",
-                "subtitle": "Создаем мебель по вашим эскизам",
-                "button_text": "Обсудить проект",
-                "button_link": "/contacts",
+                "description": "Создаем мебель по вашим эскизам. Проектирование и визуализация бесплатно.",
+                "image_url": "/assets/slider_custom.png",
                 "is_active": True,
                 "order": 2
             }
         ]
 
         for s_data in slides_data:
-            result = await session.execute(select(SliderSlide).where(SliderSlide.title == s_data["title"]))
+            result = await session.execute(select(Slide).where(Slide.title == s_data["title"]))
             if not result.scalar_one_or_none():
-                s = SliderSlide(**s_data)
+                s = Slide(**s_data)
                 session.add(s)
                 print(f"✅ Слайд добавлен: {s_data['title']}")
 
@@ -159,9 +154,9 @@ async def seed_data():
         ]
 
         for set_data in settings_data:
-            result = await session.execute(select(SiteSetting).where(SiteSetting.key == set_data["key"]))
+            result = await session.execute(select(SiteSettings).where(SiteSettings.key == set_data["key"]))
             if not result.scalar_one_or_none():
-                s = SiteSetting(**set_data)
+                s = SiteSettings(**set_data)
                 session.add(s)
                 print(f"✅ Настройка добавлена: {set_data['key']}")
 
