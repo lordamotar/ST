@@ -1,64 +1,102 @@
-# Stoly-Sklad (ST) — Мебельный салон премиум-класса
+# 🛋️ Stoly-Sklad (Furniture Store System)
 
-Современная платформа для управления мебельным каталогом и онлайн-продаж. Проект включает высокопроизводительный бэкенд на **FastAPI**, динамичный фронтенд на **Next.js 16** и автоматизированную систему деплоя.
+Современная система управления мебельным магазином: FastAPI Backend + Next.js Frontend.
 
-## 🚀 Стек технологий
+---
 
-*   **Backend:** Python 3.12+, FastAPI, SQLAlchemy 2.0 (Async), PostgreSQL, JWT.
-*   **Frontend:** React 19, Next.js 16 (Turbopack), Tailwind CSS.
-*   **DevOps:** Автоматизированные bash-скрипты, миграции без Alembic, Screen/PM2.
+## 🚀 Быстрый запуск (Installation Guide)
 
-## 🛠️ Быстрый старт на сервере (Linux)
+### 1. Подготовка системы (Linux/Ubuntu)
+```bash
+# Обновление пакетов
+sudo apt update && sudo apt upgrade -y
 
-Установка проекта была упрощена и автоматизирована до одной команды.
+# Установка Python и Node.js (если нет)
+sudo apt install python3-pip python3-venv nodejs npm -y
+```
 
-### 1. Клонирование и настройка
+### 2. Клонирование и бэкенд
 ```bash
 git clone https://github.com/lordamotar/ST.git
 cd ST
-cp .env.example .env # Если есть пример, иначе создайте вручную
+
+# Установка зависимостей
+pip install -r requirements.txt
+pip install "pydantic[email]"  # Критично для валидации
 ```
 
-### 2. Установка "под ключ"
-Запустите скрипт, который сам установит зависимости Python и Node.js, создаст таблицы в БД и настроит администратора:
-```bash
-chmod +x scripts/*.sh
-./scripts/install.sh
+### 3. Настройка переменных окружения
+Создайте файл `.env` в корне проекта:
+```env
+DATABASE_URL=postgresql+asyncpg://user:password@localhost/st_db
+JWT_SECRET=your_secret_key_here
 ```
 
-### 3. Ручной запуск компонентов
-Если нужно запустить сервисы отдельно (в разных сессиях `screen`):
+### 4. Инициализация базы данных
+Создание таблиц, наполнение товарами и создание админа (`admin/admin`):
 ```bash
-# Backend
-uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Находясь в корне /ST
+PYTHONPATH=. python3 scripts/seed_data.py
+```
 
-# Frontend
+### 5. Настройка и сборка фронтенда
+**Важно:** Перед сборкой убедитесь, что в `frontend/lib/api.ts` указан правильный IP вашего сервера.
+
+```bash
 cd frontend
+npm install
+
+# Сборка проекта
 npm run build
-npm run start
 ```
 
-## 📜 Система управления
-
-Мы внедрили надежные инструменты для обслуживания системы:
-
-*   **`scripts/migrate.py`**: Умная миграция. При запуске автоматически создает отсутствующие таблицы по моделям SQLAlchemy и накатывает SQL-исправления (добавление колонок, индексов).
-*   **`scripts/install.sh`**: Главный скрипт развертывания. Решает проблемы с путями модулей, правами доступа и инициализацией БД.
-*   **`scripts/setup_admin.py`**: Безопасное создание суперпользователя в асинхронном режиме.
-*   **`scripts/seed.py`**: Заполнение базы тестовыми данными для демонстрации.
-
-## ⚠️ Особенности деплоя (PostgreSQL)
-
-Для корректной работы с PostgreSQL через `asyncpg`:
-1. В `.env` используйте кавычки для `DATABASE_URL`, если пароль содержит спецсимволы (например, `$`, `#`).
-2. Убедитесь, что база данных создана с кодировкой `UTF8`.
-
-## 📂 Структура проекта
-
-*   `app/` — Ядро (FastAPI, асинхронный доступ к данным).
-*   `frontend/` — Интерфейс (Next.js, Tailwind).
-*   `scripts/` — Инструментарий администратора.
-*   `uploads/` — Статические изображения товаров.
+### 6. Настройка сети (Фаервол)
+Чтобы сервер был доступен извне, откройте порты:
+```bash
+sudo ufw allow 8000/tcp  # Backend API
+sudo ufw allow 3000/tcp  # Frontend Web
+```
 
 ---
-Разработано для мебельного салона **Stoly-Sklad**.
+
+## 🛠 Запуск в продакшене (через Screen)
+
+Используйте `screen`, чтобы процессы не завершались после закрытия терминала.
+
+### Запуск Бэкенда (API)
+```bash
+screen -S backend
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Нажмите Ctrl+A, затем D, чтобы отсоединиться
+```
+
+### Запуск Фронтенда (Web)
+```bash
+cd frontend
+screen -S frontend
+npm run start
+# Нажмите Ctrl+A, затем D, чтобы отсоединиться
+```
+
+---
+
+## 📂 Полезные команды
+
+*   **Сброс пароля админа на `admin`**:
+    `PYTHONPATH=. python3 scripts/reset_admin.py`
+*   **Очистка и повторное заполнение данных**:
+    `PYTHONPATH=. python3 scripts/seed_data.py`
+*   **Просмотр логов бэкенда**:
+    `tail -f logs/app.log`
+
+---
+
+## 🔐 Доступы по умолчанию
+*   **Админка**: `http://vash_ip:3000/admin`
+*   **Логин**: `admin`
+*   **Пароль**: `admin`
+*   **API Docs**: `http://vash_ip:8000/docs`
+
+---
+
+© 2026 Stoly-Sklad. Все права защищены.
