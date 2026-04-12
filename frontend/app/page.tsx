@@ -202,7 +202,7 @@ export default async function Home() {
 
           {activeFaqs.length > 0 ? (
             <div className="space-y-4">
-              {activeFaqs.map((faq, i) => (
+              {activeFaqs.map((faq: any, i: number) => (
                 <AnimatedSection key={faq.id} delay={i * 0.1}>
                   <details className="group glass rounded-3xl border border-white/5 overflow-hidden transition-all duration-500 open:border-[var(--accent)]/30">
                     <summary className="flex items-center justify-between p-7 md:p-8 cursor-pointer list-none">
