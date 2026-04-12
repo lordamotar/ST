@@ -20,7 +20,8 @@ if command -v uv &> /dev/null; then
     uv sync
 else
     echo -e "\e[33m⚠️ 'uv' не найден. Использую pip...\e[0m"
-    pip install -r requirements.txt
+    python3 -m pip install --upgrade pip
+    python3 -m pip install -r requirements.txt
 fi
 
 # 3. Установка зависимостей фронтенда
